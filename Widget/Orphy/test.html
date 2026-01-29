@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orphy Widget Test</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+      min-height: 200vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #1f2937;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      margin-bottom: 12px;
+      color: #374151;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    .secondary {
+      background: #6b7280;
+    }
+
+    .secondary:hover {
+      background: #4b5563;
+    }
+
+    input,
+    select {
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    .feedback-log {
+      background: #1f2937;
+      color: #10b981;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-top: 20px;
+    }
+
+    .error {
+      color: #ef4444;
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+
+    nav {
+      background: white;
+      padding: 16px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+
+    nav a {
+      color: #3b82f6;
+      text-decoration: none;
+      margin-right: 20px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .config-box {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .config-box code {
+      background: #fffbeb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="config-box">
+      <strong>Test Configuration:</strong><br>
+      Project ID: <code>jd71snbyqe95fwq81c2eqgrk4x8025kt</code><br>
+      API URL: <code>https://decisive-llama-265.convex.site/api/feedback/batch</code><br>
+      <em>Connected to Convex backend.</em>
+    </div>
+
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Products</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </nav>
+
+    <h1>Orphy Widget Test Page</h1>
+    <p>Click the "Review Mode" button in the bottom right corner to start reviewing elements on this page.</p>
+
+    <div class="card">
+      <h2>Sample Form</h2>
+      <p>Try clicking on these form elements:</p>
+      <input type="text" placeholder="Your name" data-testid="name-input">
+      <input type="email" placeholder="Your email">
+      <select>
+        <option>Select option</option>
+        <option>Option 1</option>
+        <option>Option 2</option>
+      </select>
+      <button>Submit Form</button>
+    </div>
+
+    <div class="card">
+      <h2>Action Buttons</h2>
+      <button>Primary Action</button>
+      <button class="secondary">Secondary Action</button>
+      <button class="secondary">Another Button</button>
+    </div>
+
+    <div class="card" id="content-section">
+      <h2>Content Section</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore
+        magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+        Excepteur sint occaecat cupidatat non proident.</p>
+    </div>
+
+    <div class="card">
+      <h2>Image Element</h2>
+      <img src="https://picsum.photos/600/300" alt="Sample image">
+    </div>
+
+    <div class="card">
+      <h2>Feedback Log</h2>
+      <p>Submitted feedback will appear here:</p>
+      <div class="feedback-log" id="feedback-log">Waiting for feedback...</div>
+    </div>
+  </div>
+
+  <script src="./dist/orphy.js"></script>
+  <script>
+    const log = document.getElementById('feedback-log');
+    let feedbackCount = 0;
+
+    // Initialize Orphy with API configuration
+    Orphy.init({
+      projectId: 'jd71snbyqe95fwq81c2eqgrk4x8025kt',
+      apiUrl: 'https://decisive-llama-265.convex.site/api/feedback/batch',
+      locale: 'fr',
+
+      onSubmit: (feedback) => {
+        feedbackCount++;
+        console.log('Feedback submitted:', feedback);
+        const viewport = feedback.viewport
+          ? `${feedback.viewport.width}x${feedback.viewport.height}`
+          : 'N/A';
+        const entry = `[${feedbackCount}] ✓ Sent to API
+  Selector: ${feedback.selector || 'N/A'}
+  Comment: ${feedback.comment || 'N/A'}
+  Viewport: ${viewport}
+----------------------------------------`;
+        log.textContent = entry + '\n' + (log.textContent === 'Waiting for feedback...' ? '' : log.textContent);
+        log.className = 'feedback-log';
+      },
+
+      onError: (error, feedback) => {
+        feedbackCount++;
+        const entry = `[${feedbackCount}] ✗ API Error: ${error.message}
+  Comment: ${feedback.comment}
+----------------------------------------`;
+        log.textContent = entry + '\n' + (log.textContent === 'Waiting for feedback...' ? '' : log.textContent);
+        log.className = 'feedback-log error';
+        console.error('Feedback error:', error);
+      }
+    });
+
+    console.log('Orphy initialized. Version:', Orphy.VERSION);
+  </script>
+</body>
+
+</html>

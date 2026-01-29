@@ -1,0 +1,276 @@
+{
+  "common": {
+    "appName": "Orphy",
+    "tagline": "Feedback management for digital agencies",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "noResults": "No results",
+    "actions": "Actions",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "welcome": "Welcome! You're signed in.",
+    "account": "Account"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "inbox": "Inbox",
+    "projects": "Projects",
+    "settings": "Settings",
+    "overview": "Overview"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "goToDashboard": "Go to dashboard",
+    "overview": "Overview",
+    "recentFeedbacks": "Recent feedbacks",
+    "viewAll": "View all",
+    "stats": {
+      "totalProjects": "Projects",
+      "openFeedbacks": "Open feedbacks",
+      "resolvedFeedbacks": "Resolved",
+      "totalFeedbacks": "Total feedbacks"
+    },
+    "empty": {
+      "noProjects": "No projects",
+      "noProjectsDescription": "Create your first project to start collecting feedback.",
+      "noFeedbacks": "No feedbacks",
+      "noFeedbacksDescription": "Your client feedbacks will appear here."
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "new": "New project",
+    "name": "Project name",
+    "namePlaceholder": "My awesome project",
+    "url": "Website URL",
+    "urlPlaceholder": "https://example.com",
+    "clientSection": "Client contact",
+    "clientName": "Contact name",
+    "clientNamePlaceholder": "Marie Dupont",
+    "clientEmail": "Email",
+    "clientEmailPlaceholder": "marie@client.com",
+    "clientCompany": "Company",
+    "clientCompanyPlaceholder": "Acme Corp",
+    "clientInternalHint": "Internal project? Use \"Internal\"",
+    "clientNotConfigured": "Client contact not configured",
+    "embedCode": "Embed code",
+    "copyCode": "Copy code",
+    "codeCopied": "Code copied!",
+    "delete": "Delete project",
+    "deleteConfirm": "Are you sure you want to delete this project? This action cannot be undone.",
+    "settings": "Project settings",
+    "viewProject": "View project",
+    "feedbackCount": "{count, plural, =0 {No feedbacks} =1 {1 feedback} other {# feedbacks}}",
+    "created": "Created on {date}"
+  },
+  "feedbacks": {
+    "title": "Feedbacks",
+    "inbox": "Inbox",
+    "status": {
+      "open": "Open",
+      "resolved": "Resolved",
+      "all": "All"
+    },
+    "priority": {
+      "label": "Priority",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "type": {
+      "bug": "Bug",
+      "design": "Design",
+      "content": "Content",
+      "question": "Question",
+      "all": "All types"
+    },
+    "markResolved": "Mark resolved",
+    "markOpen": "Reopen",
+    "resolution": {
+      "title": "Mark as resolved",
+      "noteLabel": "Resolution note",
+      "notePlaceholder": "Describe what was done to resolve this feedback...",
+      "noteHint": "This note will be included in the recap sent to the client",
+      "submit": "Mark resolved",
+      "resolvedBy": "Resolved by {name}",
+      "resolvedAt": "on {date}",
+      "noNote": "No resolution note"
+    },
+    "replay": "Replay",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure you want to delete this feedback?",
+    "element": "Element",
+    "page": "Page",
+    "comment": "Comment",
+    "author": "Author",
+    "anonymous": "Anonymous",
+    "viewport": "Viewport",
+    "position": "Position",
+    "createdAt": "Created on {date}",
+    "selector": "CSS Selector",
+    "session": "Session",
+    "device": "Device",
+    "browser": "Browser",
+    "os": "System",
+    "screen": "Screen",
+    "deviceType": {
+      "desktop": "Desktop",
+      "mobile": "Mobile",
+      "tablet": "Tablet"
+    },
+    "assignee": "Assignee",
+    "unassigned": "Unassigned",
+    "assignTo": "Assign to",
+    "filters": {
+      "type": "Type",
+      "project": "Project",
+      "reset": "Reset",
+      "allTypes": "All",
+      "allPriorities": "All",
+      "allAssignees": "All",
+      "assignedToMe": "Me",
+      "allDevices": "All",
+      "allBrowsers": "All",
+      "allProjects": "All",
+      "otherBrowser": "Other"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "inbox": "Inbox",
+    "projects": "Projects",
+    "settings": "Settings",
+    "workspace": "Workspace"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "team": "Team",
+    "notifications": "Notifications"
+  },
+  "workspace": {
+    "workspaces": "Workspaces",
+    "create": "Create workspace",
+    "switch": "Switch workspace"
+  },
+  "team": {
+    "title": "Team",
+    "description": "Manage your workspace members",
+    "members": "Members",
+    "invitations": "Pending invitations",
+    "invite": "Invite member",
+    "noMembers": "No members",
+    "noInvitations": "No pending invitations",
+    "memberSince": "Member since {date}",
+    "invitedOn": "Invited on {date}",
+    "invitedBy": "Invited by {name}",
+    "expiresOn": "Expires on {date}",
+    "revoke": "Revoke",
+    "revokeConfirm": "Are you sure you want to revoke this invitation?",
+    "revokeSuccess": "Invitation revoked",
+    "revokeError": "Failed to revoke invitation",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member",
+      "viewer": "Viewer"
+    },
+    "roleDescriptions": {
+      "admin": "Full access except billing. Can invite members.",
+      "member": "Can view and edit feedbacks.",
+      "viewer": "Read-only access."
+    },
+    "inviteDialog": {
+      "title": "Invite member",
+      "description": "Send an email invitation to join this workspace.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "colleague@example.com",
+      "roleLabel": "Role",
+      "selectRole": "Select a role",
+      "send": "Send invitation",
+      "sending": "Sending...",
+      "success": "Invitation sent to {email}",
+      "error": "Failed to send invitation",
+      "alreadyMember": "This user is already a member of this workspace",
+      "alreadyInvited": "An invitation has already been sent to this email address"
+    }
+  },
+  "invite": {
+    "title": "Invitation to join",
+    "loading": "Loading invitation...",
+    "syncingAccount": "Syncing your account...",
+    "notFound": "Invitation not found",
+    "notFoundDescription": "This invitation doesn't exist or has been revoked.",
+    "expired": "Invitation expired",
+    "expiredDescription": "This invitation has expired. Ask the administrator for a new one.",
+    "alreadyAccepted": "Invitation already accepted",
+    "alreadyAcceptedDescription": "You have already accepted this invitation.",
+    "revoked": "Invitation revoked",
+    "revokedDescription": "This invitation has been revoked by the administrator.",
+    "signInRequired": "Sign in to continue",
+    "signInDescription": "You must be signed in to accept this invitation.",
+    "wrongEmail": "Wrong email address",
+    "wrongEmailDescription": "This invitation was sent to {email}. Please sign in with that address.",
+    "invitedBy": "{name} invites you to join",
+    "asRole": "as {role}",
+    "accept": "Accept invitation",
+    "accepting": "Accepting...",
+    "success": "You've joined the workspace!",
+    "error": "Failed to accept invitation",
+    "goToDashboard": "Go to dashboard"
+  },
+  "setup": {
+    "title": "Project Setup",
+    "steps": {
+      "created": "Project Created",
+      "copyCode": "Copy Code",
+      "install": "Install",
+      "verify": "Verify"
+    },
+    "projectCreated": {
+      "title": "Your project is ready!",
+      "description": "Follow the steps to install the Orphy widget on your website."
+    },
+    "copyCode": {
+      "title": "Copy the embed code",
+      "description": "This code activates Orphy on your website.",
+      "copied": "Code copied!"
+    },
+    "install": {
+      "title": "Install the widget",
+      "description": "Paste the code just before the closing body tag of your website.",
+      "tips": {
+        "html": "Standard HTML",
+        "htmlDescription": "Paste the code directly in your HTML file.",
+        "wordpress": "WordPress",
+        "wordpressDescription": "Use a plugin like 'Insert Headers and Footers' or add the code in footer.php.",
+        "webflow": "Webflow",
+        "webflowDescription": "Project Settings → Custom Code → Footer Code",
+        "shopify": "Shopify",
+        "shopifyDescription": "Online Store → Themes → Edit Code → theme.liquid (before closing body tag)"
+      }
+    },
+    "verify": {
+      "title": "Verify installation",
+      "description": "Test that the widget works correctly on your website.",
+      "openSite": "Open my website",
+      "waiting": "Waiting for first feedback...",
+      "success": "Widget successfully installed!",
+      "skip": "Do later"
+    },
+    "complete": "Complete setup",
+    "back": "Back",
+    "next": "Continue"
+  }
+}

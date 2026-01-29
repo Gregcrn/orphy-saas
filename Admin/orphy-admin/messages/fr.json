@@ -1,0 +1,276 @@
+{
+  "common": {
+    "appName": "Orphy",
+    "tagline": "Gestion des feedbacks pour agences digitales",
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat",
+    "actions": "Actions",
+    "confirm": "Confirmer",
+    "back": "Retour"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "Créer un compte",
+    "signOut": "Se déconnecter",
+    "welcome": "Bienvenue ! Tu es connecté.",
+    "account": "Compte"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "inbox": "Boîte de réception",
+    "projects": "Projets",
+    "settings": "Paramètres",
+    "overview": "Vue d'ensemble"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "goToDashboard": "Accéder au dashboard",
+    "overview": "Vue d'ensemble",
+    "recentFeedbacks": "Feedbacks récents",
+    "viewAll": "Voir tout",
+    "stats": {
+      "totalProjects": "Projets",
+      "openFeedbacks": "Feedbacks ouverts",
+      "resolvedFeedbacks": "Résolus",
+      "totalFeedbacks": "Total feedbacks"
+    },
+    "empty": {
+      "noProjects": "Aucun projet",
+      "noProjectsDescription": "Créez votre premier projet pour commencer à collecter des feedbacks.",
+      "noFeedbacks": "Aucun feedback",
+      "noFeedbacksDescription": "Les feedbacks de vos clients apparaîtront ici."
+    }
+  },
+  "projects": {
+    "title": "Projets",
+    "new": "Nouveau projet",
+    "name": "Nom du projet",
+    "namePlaceholder": "Mon super projet",
+    "url": "URL du site",
+    "urlPlaceholder": "https://example.com",
+    "clientSection": "Contact client",
+    "clientName": "Nom du contact",
+    "clientNamePlaceholder": "Marie Dupont",
+    "clientEmail": "Email",
+    "clientEmailPlaceholder": "marie@client.com",
+    "clientCompany": "Société",
+    "clientCompanyPlaceholder": "Acme Corp",
+    "clientInternalHint": "Projet interne ? Mettez \"Interne\"",
+    "clientNotConfigured": "Contact client non renseigné",
+    "embedCode": "Code d'intégration",
+    "copyCode": "Copier le code",
+    "codeCopied": "Code copié !",
+    "delete": "Supprimer le projet",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.",
+    "settings": "Paramètres du projet",
+    "viewProject": "Voir le projet",
+    "feedbackCount": "{count, plural, =0 {Aucun feedback} =1 {1 feedback} other {# feedbacks}}",
+    "created": "Créé le {date}"
+  },
+  "feedbacks": {
+    "title": "Feedbacks",
+    "inbox": "Boîte de réception",
+    "status": {
+      "open": "Ouvert",
+      "resolved": "Résolu",
+      "all": "Tous"
+    },
+    "priority": {
+      "label": "Priorité",
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute"
+    },
+    "type": {
+      "bug": "Bug",
+      "design": "Design",
+      "content": "Contenu",
+      "question": "Question",
+      "all": "Tous les types"
+    },
+    "markResolved": "Marquer résolu",
+    "markOpen": "Rouvrir",
+    "resolution": {
+      "title": "Marquer comme résolu",
+      "noteLabel": "Note de résolution",
+      "notePlaceholder": "Décrivez ce qui a été fait pour résoudre ce feedback...",
+      "noteHint": "Cette note sera incluse dans le récap envoyé au client",
+      "submit": "Marquer résolu",
+      "resolvedBy": "Résolu par {name}",
+      "resolvedAt": "le {date}",
+      "noNote": "Aucune note de résolution"
+    },
+    "replay": "Rejouer",
+    "delete": "Supprimer",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce feedback ?",
+    "element": "Élément",
+    "page": "Page",
+    "comment": "Commentaire",
+    "author": "Auteur",
+    "anonymous": "Anonyme",
+    "viewport": "Viewport",
+    "position": "Position",
+    "createdAt": "Créé le {date}",
+    "selector": "Sélecteur CSS",
+    "session": "Session",
+    "device": "Appareil",
+    "browser": "Navigateur",
+    "os": "Système",
+    "screen": "Écran",
+    "deviceType": {
+      "desktop": "Desktop",
+      "mobile": "Mobile",
+      "tablet": "Tablette"
+    },
+    "assignee": "Assigné",
+    "unassigned": "Non assigné",
+    "assignTo": "Assigner à",
+    "filters": {
+      "type": "Type",
+      "project": "Projet",
+      "reset": "Réinitialiser",
+      "allTypes": "Tous",
+      "allPriorities": "Toutes",
+      "allAssignees": "Tous",
+      "assignedToMe": "Moi",
+      "allDevices": "Tous",
+      "allBrowsers": "Tous",
+      "allProjects": "Tous",
+      "otherBrowser": "Autre"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "inbox": "Boîte de réception",
+    "projects": "Projets",
+    "settings": "Paramètres",
+    "workspace": "Espace de travail"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "account": "Compte",
+    "team": "Équipe",
+    "notifications": "Notifications"
+  },
+  "workspace": {
+    "workspaces": "Espaces de travail",
+    "create": "Créer un espace",
+    "switch": "Changer d'espace"
+  },
+  "team": {
+    "title": "Équipe",
+    "description": "Gérez les membres de votre espace de travail",
+    "members": "Membres",
+    "invitations": "Invitations en attente",
+    "invite": "Inviter un membre",
+    "noMembers": "Aucun membre",
+    "noInvitations": "Aucune invitation en attente",
+    "memberSince": "Membre depuis {date}",
+    "invitedOn": "Invité le {date}",
+    "invitedBy": "Invité par {name}",
+    "expiresOn": "Expire le {date}",
+    "revoke": "Révoquer",
+    "revokeConfirm": "Êtes-vous sûr de vouloir révoquer cette invitation ?",
+    "revokeSuccess": "Invitation révoquée",
+    "revokeError": "Erreur lors de la révocation de l'invitation",
+    "roles": {
+      "owner": "Admin",
+      "admin": "Administrateur",
+      "member": "Membre",
+      "viewer": "Lecteur"
+    },
+    "roleDescriptions": {
+      "admin": "Accès complet sauf facturation. Peut inviter des membres.",
+      "member": "Peut voir et modifier les feedbacks.",
+      "viewer": "Accès en lecture seule."
+    },
+    "inviteDialog": {
+      "title": "Inviter un membre",
+      "description": "Envoyez une invitation par email pour rejoindre cet espace de travail.",
+      "emailLabel": "Adresse email",
+      "emailPlaceholder": "collegue@exemple.com",
+      "roleLabel": "Rôle",
+      "selectRole": "Sélectionner un rôle",
+      "send": "Envoyer l'invitation",
+      "sending": "Envoi en cours...",
+      "success": "Invitation envoyée à {email}",
+      "error": "Erreur lors de l'envoi de l'invitation",
+      "alreadyMember": "Cet utilisateur est déjà membre de cet espace de travail",
+      "alreadyInvited": "Une invitation a déjà été envoyée à cette adresse email"
+    }
+  },
+  "invite": {
+    "title": "Invitation à rejoindre",
+    "loading": "Chargement de l'invitation...",
+    "syncingAccount": "Synchronisation de votre compte...",
+    "notFound": "Invitation introuvable",
+    "notFoundDescription": "Cette invitation n'existe pas ou a été révoquée.",
+    "expired": "Invitation expirée",
+    "expiredDescription": "Cette invitation a expiré. Demandez une nouvelle invitation à l'administrateur.",
+    "alreadyAccepted": "Invitation déjà acceptée",
+    "alreadyAcceptedDescription": "Vous avez déjà accepté cette invitation.",
+    "revoked": "Invitation révoquée",
+    "revokedDescription": "Cette invitation a été révoquée par l'administrateur.",
+    "signInRequired": "Connectez-vous pour continuer",
+    "signInDescription": "Vous devez être connecté pour accepter cette invitation.",
+    "wrongEmail": "Mauvaise adresse email",
+    "wrongEmailDescription": "Cette invitation a été envoyée à {email}. Veuillez vous connecter avec cette adresse.",
+    "invitedBy": "{name} vous invite à rejoindre",
+    "asRole": "en tant que {role}",
+    "accept": "Accepter l'invitation",
+    "accepting": "Acceptation en cours...",
+    "success": "Vous avez rejoint l'espace de travail !",
+    "error": "Erreur lors de l'acceptation de l'invitation",
+    "goToDashboard": "Accéder au tableau de bord"
+  },
+  "setup": {
+    "title": "Configuration du projet",
+    "steps": {
+      "created": "Projet créé",
+      "copyCode": "Copier le code",
+      "install": "Installer",
+      "verify": "Vérifier"
+    },
+    "projectCreated": {
+      "title": "Votre projet est prêt !",
+      "description": "Suivez les étapes pour installer le widget Orphy sur votre site."
+    },
+    "copyCode": {
+      "title": "Copiez le code d'intégration",
+      "description": "Ce code permet d'activer Orphy sur votre site.",
+      "copied": "Code copié !"
+    },
+    "install": {
+      "title": "Installez le widget",
+      "description": "Collez le code juste avant la balise de fermeture body de votre site.",
+      "tips": {
+        "html": "HTML standard",
+        "htmlDescription": "Collez le code directement dans votre fichier HTML.",
+        "wordpress": "WordPress",
+        "wordpressDescription": "Utilisez un plugin comme 'Insert Headers and Footers' ou ajoutez le code dans footer.php.",
+        "webflow": "Webflow",
+        "webflowDescription": "Project Settings → Custom Code → Footer Code",
+        "shopify": "Shopify",
+        "shopifyDescription": "Online Store → Themes → Edit Code → theme.liquid (avant la balise body)"
+      }
+    },
+    "verify": {
+      "title": "Vérifiez l'installation",
+      "description": "Testez que le widget fonctionne correctement sur votre site.",
+      "openSite": "Ouvrir mon site",
+      "waiting": "En attente du premier feedback...",
+      "success": "Widget installé avec succès !",
+      "skip": "Faire plus tard"
+    },
+    "complete": "Terminer la configuration",
+    "back": "Retour",
+    "next": "Continuer"
+  }
+}

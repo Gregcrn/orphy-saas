@@ -1,0 +1,24 @@
+{
+  "name": "orphy",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Lightweight web feedback widget for digital agencies",
+  "main": "dist/orphy.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["feedback", "widget", "review", "web"],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.28.1",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "terser": "^5.37.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
