@@ -751,7 +751,7 @@ function createValidateButton(thread: FeedbackThread): HTMLDivElement {
       validateBtn.disabled = false;
       validateBtn.style.opacity = "1";
       validateBtn.style.cursor = "pointer";
-      validateBtn.textContent = t("thread.validate") || "C'est validé ✓";
+      validateBtn.textContent = t("thread.validate") || "Valider";
     }
   });
 
