@@ -21,9 +21,12 @@ import {
 let toolbarEl: HTMLDivElement | null = null;
 let buttonEl: HTMLButtonElement | null = null;
 let reviewButtonEl: HTMLButtonElement | null = null;
+let messagesButtonEl: HTMLButtonElement | null = null;
 let counterBadgeEl: HTMLSpanElement | null = null;
+let messagesBadgeEl: HTMLSpanElement | null = null;
 let onToggle: ((active: boolean) => void) | null = null;
 let onReview: (() => void) | null = null;
+let onMessages: (() => void) | null = null;
 
 // =============================================================================
 // STYLES
@@ -91,6 +94,17 @@ const REVIEW_BUTTON_HOVER: Partial<CSSStyleDeclaration> = {
   borderColor: colors.border.hover,
 };
 
+const MESSAGES_BUTTON_STYLES: Partial<CSSStyleDeclaration> = {
+  ...BUTTON_BASE,
+  backgroundColor: colors.bg.primary,
+  color: colors.text.primary,
+};
+
+const MESSAGES_BUTTON_HOVER: Partial<CSSStyleDeclaration> = {
+  backgroundColor: colors.bg.secondary,
+  borderColor: colors.border.hover,
+};
+
 const COUNTER_BADGE_STYLES: Partial<CSSStyleDeclaration> = {
   minWidth: components.badge.size,
   height: components.badge.size,
@@ -112,12 +126,14 @@ const COUNTER_BADGE_STYLES: Partial<CSSStyleDeclaration> = {
 
 export function createToolbar(
   toggle: (active: boolean) => void,
-  review: () => void
+  review: () => void,
+  messages?: () => void
 ): void {
   if (toolbarEl) return;
 
   onToggle = toggle;
   onReview = review;
+  onMessages = messages ?? null;
 
   // Main toggle button
   buttonEl = createElement("button", {
@@ -133,10 +149,13 @@ export function createToolbar(
   // Review button (initially hidden)
   reviewButtonEl = createReviewButton();
 
+  // Messages button (for viewing threads)
+  messagesButtonEl = createMessagesButton();
+
   toolbarEl = createElement("div", {
     className: "orphy-toolbar",
     styles: TOOLBAR_STYLES,
-    children: [reviewButtonEl, buttonEl],
+    children: [reviewButtonEl, messagesButtonEl, buttonEl],
   });
 
   document.body.appendChild(toolbarEl);
@@ -154,9 +173,34 @@ export function destroyToolbar(): void {
   toolbarEl = null;
   buttonEl = null;
   reviewButtonEl = null;
+  messagesButtonEl = null;
   counterBadgeEl = null;
+  messagesBadgeEl = null;
   onToggle = null;
   onReview = null;
+  onMessages = null;
+}
+
+/**
+ * Update the messages badge count
+ */
+export function updateMessagesBadge(count: number): void {
+  if (!messagesButtonEl || !messagesBadgeEl) return;
+
+  if (count > 0) {
+    messagesBadgeEl.textContent = String(count);
+    messagesBadgeEl.style.display = "flex";
+  } else {
+    messagesBadgeEl.style.display = "none";
+  }
+}
+
+/**
+ * Show/hide the messages button
+ */
+export function setMessagesButtonVisible(visible: boolean): void {
+  if (!messagesButtonEl) return;
+  messagesButtonEl.style.display = visible ? "flex" : "none";
 }
 
 // =============================================================================
@@ -170,6 +214,10 @@ function handleClick(): void {
 
 function handleReviewClick(): void {
   onReview?.();
+}
+
+function handleMessagesClick(): void {
+  onMessages?.();
 }
 
 // =============================================================================
@@ -291,6 +339,54 @@ function createReviewIcon(): HTMLElement {
 // =============================================================================
 // HOVER EFFECTS
 // =============================================================================
+
+function createMessagesButton(): HTMLButtonElement {
+  messagesBadgeEl = createElement("span", {
+    className: "orphy-messages-badge",
+    styles: COUNTER_BADGE_STYLES,
+    children: ["0"],
+  });
+  messagesBadgeEl.style.display = "none";
+
+  const button = createElement("button", {
+    className: "orphy-messages-btn",
+    styles: MESSAGES_BUTTON_STYLES,
+    onClick: handleMessagesClick,
+    children: [createMessagesIcon(), t("toolbar.messages"), messagesBadgeEl],
+  });
+
+  // Add hover effect
+  button.addEventListener("mouseenter", () => {
+    Object.assign(button.style, MESSAGES_BUTTON_HOVER);
+  });
+  button.addEventListener("mouseleave", () => {
+    Object.assign(button.style, MESSAGES_BUTTON_STYLES);
+  });
+
+  return button;
+}
+
+function createMessagesIcon(): HTMLElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "16");
+  svg.setAttribute("height", "16");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.5");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+
+  // Chat bubbles icon (messages/conversation)
+  const path1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path1.setAttribute(
+    "d",
+    "M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+  );
+  svg.appendChild(path1);
+
+  return svg as unknown as HTMLElement;
+}
 
 function addHoverEffect(element: HTMLButtonElement, isActive: boolean): void {
   // Remove existing listeners by cloning

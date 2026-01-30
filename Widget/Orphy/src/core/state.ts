@@ -11,9 +11,11 @@ export interface BoundingBox {
   height: number;
 }
 
-export type FeedbackStatus = "open" | "in_progress" | "resolved";
+export type FeedbackStatus = "open" | "in_progress" | "treated" | "validated" | "resolved";
 
 export type FeedbackType = "bug" | "design" | "content" | "question";
+
+export type AuthorType = "client" | "agency";
 
 export interface Feedback {
   id: string;
@@ -38,6 +40,12 @@ export interface Feedback {
   createdAt?: number;
   /** Status from API (only present during replay) */
   status?: FeedbackStatus;
+  /** Who created this feedback (only present during replay/review) */
+  authorType?: AuthorType;
+  /** Author's name (only present during replay/review) */
+  authorName?: string;
+  /** Author's email (only present during replay/review) */
+  authorEmail?: string;
 }
 
 export interface WidgetState {

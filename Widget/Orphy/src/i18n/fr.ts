@@ -48,6 +48,7 @@ export const fr = {
     feedback: "Feedback",
     done: "Terminé",
     review: "Envoyer",
+    messages: "Messages",
   },
 
   // Replay mode
@@ -81,6 +82,29 @@ export const fr = {
       loadError: "Impossible de charger le feedback",
       close: "Fermer",
     },
+  },
+
+  // Thread panel (bidirectional comments)
+  thread: {
+    author: {
+      client: "Client",
+      agency: "Agence",
+    },
+    anonymous: "Anonyme",
+    replyPlaceholder: "Écrivez une réponse...",
+    send: "Envoyer",
+    sending: "Envoi...",
+    noReplies: "Pas encore de réponses",
+    // Validation workflow
+    status: {
+      open: "En attente",
+      treated: "Traité",
+      validated: "Validé",
+    },
+    validateInfo: "L'agence a traité ce retour. Confirmez si c'est résolu :",
+    validate: "Valider",
+    validating: "Validation...",
+    validated: "Validé !",
   },
 } as const;
 
@@ -122,6 +146,7 @@ export interface TranslationKeys {
     feedback: string;
     done: string;
     review: string;
+    messages: string;
   };
   replay: {
     status: {
@@ -153,5 +178,25 @@ export interface TranslationKeys {
       loadError: string;
       close: string;
     };
+  };
+  thread: {
+    author: {
+      client: string;
+      agency: string;
+    };
+    anonymous: string;
+    replyPlaceholder: string;
+    send: string;
+    sending: string;
+    noReplies: string;
+    status: {
+      open: string;
+      treated: string;
+      validated: string;
+    };
+    validateInfo: string;
+    validate: string;
+    validating: string;
+    validated: string;
   };
 }

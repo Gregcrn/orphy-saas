@@ -376,39 +376,8 @@ http.route({
 // Using pathPrefix for dynamic feedbackId routing
 // =============================================================================
 
-// GET /api/replay/{feedbackId} - Get feedback for replay
-http.route({
-  pathPrefix: "/api/replay/",
-  method: "GET",
-  handler: httpAction(async (ctx, request) => {
-    try {
-      // Extract feedbackId from URL (everything after /api/replay/)
-      const url = new URL(request.url);
-      const feedbackId = url.pathname.replace("/api/replay/", "").split("/")[0];
-
-      if (!feedbackId) {
-        return corsErrorResponse("Missing feedbackId", 400);
-      }
-
-      // Fetch feedback using internal query
-      const feedback = await ctx.runQuery(internal.feedbacks.getForReplayById, {
-        feedbackId: feedbackId as Id<"feedbacks">,
-      });
-
-      if (!feedback) {
-        return corsErrorResponse("Feedback not found", 404);
-      }
-
-      return corsResponse({ feedback });
-    } catch (error) {
-      console.error("Error fetching feedback for replay:", error);
-      const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
-    }
-  }),
-});
-
-// PATCH /api/replay/{feedbackId}/status - Update feedback status (with optional resolution note)
+// PATCH /api/replay/{feedbackId}/status - Update feedback status
+// Supports: open, treated, validated
 http.route({
   pathPrefix: "/api/replay/",
   method: "PATCH",
@@ -426,27 +395,116 @@ http.route({
       // Parse body
       const body = await request.json() as { status: string; resolutionNote?: string };
 
-      if (!body.status || (body.status !== "open" && body.status !== "resolved")) {
-        return corsErrorResponse("Invalid status (must be 'open' or 'resolved')", 400);
+      const validStatuses = ["open", "treated", "validated", "resolved"]; // Keep "resolved" for backwards compat
+      if (!body.status || !validStatuses.includes(body.status)) {
+        return corsErrorResponse("Invalid status (must be 'open', 'treated', or 'validated')", 400);
       }
 
-      // If resolving with a note, use the dedicated mutation
-      if (body.status === "resolved") {
+      // Handle status transitions
+      if (body.status === "treated" || body.status === "resolved") {
+        // Agency marks as treated (resolved is alias for treated for backwards compat)
         await ctx.runMutation(internal.feedbacks.resolveFromWidget, {
           feedbackId: feedbackId as Id<"feedbacks">,
           resolutionNote: body.resolutionNote,
         });
+      } else if (body.status === "validated") {
+        // Client validates (requires status to be "treated")
+        await ctx.runMutation(internal.feedbacks.validateFromWidget, {
+          feedbackId: feedbackId as Id<"feedbacks">,
+        });
       } else {
-        // For reopening, use the status update mutation
+        // Reopen (status = "open")
         await ctx.runMutation(internal.feedbacks.updateStatusFromWidget, {
           feedbackId: feedbackId as Id<"feedbacks">,
-          status: body.status,
+          status: "open",
         });
       }
 
       return corsResponse({ success: true });
     } catch (error) {
       console.error("Error updating feedback status:", error);
+      const message = error instanceof Error ? error.message : "Internal server error";
+      return corsErrorResponse(message, 500);
+    }
+  }),
+});
+
+// GET /api/replay/{feedbackId}/replies - Get replies for a feedback
+http.route({
+  pathPrefix: "/api/replay/",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const pathParts = url.pathname.replace("/api/replay/", "").split("/");
+      const feedbackId = pathParts[0];
+      const resource = pathParts[1];
+
+      // If requesting replies
+      if (resource === "replies" && feedbackId) {
+        const replies = await ctx.runQuery(internal.feedbacks.getRepliesForReplay, {
+          feedbackId: feedbackId as Id<"feedbacks">,
+        });
+        return corsResponse({ replies });
+      }
+
+      // Otherwise, get the feedback itself (existing behavior)
+      if (feedbackId && !resource) {
+        const feedback = await ctx.runQuery(internal.feedbacks.getForReplayById, {
+          feedbackId: feedbackId as Id<"feedbacks">,
+        });
+
+        if (!feedback) {
+          return corsErrorResponse("Feedback not found", 404);
+        }
+
+        return corsResponse({ feedback });
+      }
+
+      return corsErrorResponse("Invalid request", 400);
+    } catch (error) {
+      console.error("Error in replay GET:", error);
+      const message = error instanceof Error ? error.message : "Internal server error";
+      return corsErrorResponse(message, 500);
+    }
+  }),
+});
+
+// POST /api/replay/{feedbackId}/replies - Create a reply (client)
+http.route({
+  pathPrefix: "/api/replay/",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const pathParts = url.pathname.replace("/api/replay/", "").split("/");
+      const feedbackId = pathParts[0];
+      const resource = pathParts[1];
+
+      if (resource !== "replies" || !feedbackId) {
+        return corsErrorResponse("Invalid endpoint", 400);
+      }
+
+      const body = await request.json() as {
+        content: string;
+        authorName?: string;
+        authorEmail?: string;
+      };
+
+      if (!body.content || typeof body.content !== "string" || !body.content.trim()) {
+        return corsErrorResponse("Missing or empty content", 400);
+      }
+
+      const replyId = await ctx.runMutation(internal.feedbacks.createReplyFromWidget, {
+        feedbackId: feedbackId as Id<"feedbacks">,
+        content: body.content,
+        authorName: body.authorName,
+        authorEmail: body.authorEmail,
+      });
+
+      return corsResponse({ success: true, replyId }, 201);
+    } catch (error) {
+      console.error("Error creating reply:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
       return corsErrorResponse(message, 500);
     }
@@ -462,7 +520,54 @@ http.route({
       status: 204,
       headers: {
         ...CORS_HEADERS,
-        "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+      },
+    });
+  }),
+});
+
+// =============================================================================
+// REVIEW MODE ENDPOINTS (For agency review on client sites)
+// =============================================================================
+
+// GET /api/review/project/{projectId}?pageUrl=... - Get feedbacks for review mode
+http.route({
+  pathPrefix: "/api/review/project/",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const projectId = url.pathname.replace("/api/review/project/", "").split("/")[0];
+      const pageUrl = url.searchParams.get("pageUrl") || undefined;
+
+      if (!projectId) {
+        return corsErrorResponse("Missing projectId", 400);
+      }
+
+      const feedbacks = await ctx.runQuery(internal.feedbacks.getForReviewByProject, {
+        projectId: projectId as Id<"projects">,
+        pageUrl,
+      });
+
+      return corsResponse({ feedbacks });
+    } catch (error) {
+      console.error("Error in review GET:", error);
+      const message = error instanceof Error ? error.message : "Internal server error";
+      return corsErrorResponse(message, 500);
+    }
+  }),
+});
+
+// CORS preflight for review endpoints
+http.route({
+  pathPrefix: "/api/review/",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...CORS_HEADERS,
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
       },
     });
   }),

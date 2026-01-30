@@ -13,12 +13,22 @@ const feedbackTypeValidator = v.union(
   v.literal("question")
 );
 
-const feedbackStatusValidator = v.union(v.literal("open"), v.literal("resolved"));
+const feedbackStatusValidator = v.union(
+  v.literal("open"),
+  v.literal("treated"),
+  v.literal("validated"),
+  v.literal("resolved") // @deprecated - Kept for backwards compatibility
+);
 
 const priorityValidator = v.union(
   v.literal("low"),
   v.literal("medium"),
   v.literal("high")
+);
+
+const authorTypeValidator = v.union(
+  v.literal("client"),
+  v.literal("agency")
 );
 
 const boundingBoxValidator = v.object({
@@ -336,6 +346,20 @@ export const getProjectStats = query({
       )
       .collect();
 
+    const treatedFeedbacks = await ctx.db
+      .query("feedbacks")
+      .withIndex("by_project_status", (q: any) =>
+        q.eq("projectId", args.projectId).eq("status", "treated")
+      )
+      .collect();
+
+    const validatedFeedbacks = await ctx.db
+      .query("feedbacks")
+      .withIndex("by_project_status", (q: any) =>
+        q.eq("projectId", args.projectId).eq("status", "validated")
+      )
+      .collect();
+
     // Count by type
     const byType = {
       bug: 0,
@@ -352,7 +376,10 @@ export const getProjectStats = query({
     return {
       total: allFeedbacks.length,
       open: openFeedbacks.length,
-      resolved: allFeedbacks.length - openFeedbacks.length,
+      treated: treatedFeedbacks.length,
+      validated: validatedFeedbacks.length,
+      // Keep 'resolved' for backwards compat (treated + validated)
+      resolved: treatedFeedbacks.length + validatedFeedbacks.length,
       byType,
     };
   },
@@ -387,7 +414,37 @@ export const updateStatus = mutation({
   },
 });
 
-/** Resolve feedback with optional note */
+/** Mark feedback as treated (agency has addressed it) with optional note */
+export const markAsTreated = mutation({
+  args: {
+    feedbackId: v.id("feedbacks"),
+    resolutionNote: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const feedback = await ctx.db.get(args.feedbackId);
+    if (!feedback) throw new Error("Feedback not found");
+
+    const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
+    if (!hasAccess) throw new Error("Not authorized");
+
+    const now = Date.now();
+
+    await ctx.db.patch(args.feedbackId, {
+      status: "treated",
+      resolutionNote: args.resolutionNote?.trim() || undefined,
+      resolvedBy: user._id,
+      resolvedAt: now,
+      updatedAt: now,
+    });
+
+    return args.feedbackId;
+  },
+});
+
+/** @deprecated Use markAsTreated instead - kept for backwards compatibility */
 export const resolve = mutation({
   args: {
     feedbackId: v.id("feedbacks"),
@@ -406,7 +463,7 @@ export const resolve = mutation({
     const now = Date.now();
 
     await ctx.db.patch(args.feedbackId, {
-      status: "resolved",
+      status: "treated",
       resolutionNote: args.resolutionNote?.trim() || undefined,
       resolvedBy: user._id,
       resolvedAt: now,
@@ -417,7 +474,7 @@ export const resolve = mutation({
   },
 });
 
-/** Reopen a resolved feedback (clears resolution data) */
+/** Reopen a treated/validated feedback (clears all status data) */
 export const reopen = mutation({
   args: {
     feedbackId: v.id("feedbacks"),
@@ -437,6 +494,7 @@ export const reopen = mutation({
       resolutionNote: undefined,
       resolvedBy: undefined,
       resolvedAt: undefined,
+      validatedAt: undefined,
       updatedAt: Date.now(),
     });
 
@@ -671,7 +729,7 @@ export const updateStatusFromWidget = internalMutation({
   },
 });
 
-/** Resolve feedback from widget with optional note (internal - called by HTTP action) */
+/** Mark feedback as treated from widget with optional note (internal - called by HTTP action) */
 export const resolveFromWidget = internalMutation({
   args: {
     feedbackId: v.id("feedbacks"),
@@ -686,11 +744,39 @@ export const resolveFromWidget = internalMutation({
     const now = Date.now();
 
     await ctx.db.patch(args.feedbackId, {
-      status: "resolved",
+      status: "treated",
       resolutionNote: args.resolutionNote?.trim() || undefined,
       resolvedAt: now,
       updatedAt: now,
       // Note: no resolvedBy since widget has no authenticated user
+    });
+
+    return args.feedbackId;
+  },
+});
+
+/** Validate feedback from widget (client confirms it's done - internal - called by HTTP action) */
+export const validateFromWidget = internalMutation({
+  args: {
+    feedbackId: v.id("feedbacks"),
+  },
+  handler: async (ctx, args) => {
+    const feedback = await ctx.db.get(args.feedbackId);
+    if (!feedback) {
+      throw new Error("Feedback not found");
+    }
+
+    // Only allow validation if status is "treated"
+    if (feedback.status !== "treated") {
+      throw new Error("Feedback must be treated before it can be validated");
+    }
+
+    const now = Date.now();
+
+    await ctx.db.patch(args.feedbackId, {
+      status: "validated",
+      validatedAt: now,
+      updatedAt: now,
     });
 
     return args.feedbackId;
@@ -734,6 +820,172 @@ export const getForReplay = query({
       pageUrl: f.pageUrl,
       feedbackType: f.feedbackType,
       comment: f.comment,
+      authorType: f.authorType || "client",
+      authorName: f.authorName,
+      status: f.status,
+      createdAt: f.createdAt,
+    }));
+  },
+});
+
+// =============================================================================
+// REPLIES - Thread messages on feedbacks
+// =============================================================================
+
+/** List replies for a feedback (authenticated - Dashboard) */
+export const listReplies = query({
+  args: {
+    feedbackId: v.id("feedbacks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    // Verify access to the feedback's project
+    const feedback = await ctx.db.get(args.feedbackId);
+    if (!feedback) return [];
+
+    const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
+    if (!hasAccess) return [];
+
+    const replies = await ctx.db
+      .query("replies")
+      .withIndex("by_feedback", (q: any) => q.eq("feedbackId", args.feedbackId))
+      .order("asc")
+      .collect();
+
+    return replies;
+  },
+});
+
+/** Create a reply (authenticated - Dashboard, agency member) */
+export const createReply = mutation({
+  args: {
+    feedbackId: v.id("feedbacks"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    // Verify access to the feedback's project
+    const feedback = await ctx.db.get(args.feedbackId);
+    if (!feedback) throw new Error("Feedback not found");
+
+    const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
+    if (!hasAccess) throw new Error("Not authorized");
+
+    const replyId = await ctx.db.insert("replies", {
+      feedbackId: args.feedbackId,
+      authorType: "agency",
+      authorId: user._id,
+      authorName: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+      authorEmail: user.email,
+      content: args.content.trim(),
+      createdAt: Date.now(),
+    });
+
+    // Update feedback's updatedAt
+    await ctx.db.patch(args.feedbackId, {
+      updatedAt: Date.now(),
+    });
+
+    return replyId;
+  },
+});
+
+/** Create a reply from widget (internal - client reply) */
+export const createReplyFromWidget = internalMutation({
+  args: {
+    feedbackId: v.id("feedbacks"),
+    content: v.string(),
+    authorName: v.optional(v.string()),
+    authorEmail: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Verify feedback exists
+    const feedback = await ctx.db.get(args.feedbackId);
+    if (!feedback) {
+      throw new Error("Feedback not found");
+    }
+
+    const replyId = await ctx.db.insert("replies", {
+      feedbackId: args.feedbackId,
+      authorType: "client",
+      authorName: args.authorName,
+      authorEmail: args.authorEmail,
+      content: args.content.trim(),
+      createdAt: Date.now(),
+    });
+
+    // Update feedback's updatedAt
+    await ctx.db.patch(args.feedbackId, {
+      updatedAt: Date.now(),
+    });
+
+    return replyId;
+  },
+});
+
+/** Get replies for replay (internal - limited fields for widget) */
+export const getRepliesForReplay = internalQuery({
+  args: {
+    feedbackId: v.id("feedbacks"),
+  },
+  handler: async (ctx, args) => {
+    const replies = await ctx.db
+      .query("replies")
+      .withIndex("by_feedback", (q: any) => q.eq("feedbackId", args.feedbackId))
+      .order("asc")
+      .collect();
+
+    // Return only fields needed for widget display
+    return replies.map((r: any) => ({
+      id: r._id,
+      authorType: r.authorType,
+      authorName: r.authorName,
+      content: r.content,
+      createdAt: r.createdAt,
+    }));
+  },
+});
+
+/** Get feedbacks for review mode (internal - called by HTTP action for widget review) */
+export const getForReviewByProject = internalQuery({
+  args: {
+    projectId: v.id("projects"),
+    pageUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Verify project exists
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    let feedbacks = await ctx.db
+      .query("feedbacks")
+      .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
+      .collect();
+
+    // Filter by pageUrl if specified
+    if (args.pageUrl) {
+      feedbacks = feedbacks.filter((f: any) => f.pageUrl === args.pageUrl);
+    }
+
+    // Return fields needed for review mode
+    return feedbacks.map((f: any) => ({
+      id: f._id,
+      orphyId: f.orphyId,
+      selector: f.selector,
+      boundingBox: f.boundingBox,
+      positionInElement: f.positionInElement,
+      positionInViewport: f.positionInViewport,
+      viewport: f.viewport,
+      pageUrl: f.pageUrl,
+      feedbackType: f.feedbackType,
+      comment: f.comment,
+      authorType: f.authorType || "client",
+      authorName: f.authorName,
+      authorEmail: f.authorEmail,
       status: f.status,
       createdAt: f.createdAt,
     }));

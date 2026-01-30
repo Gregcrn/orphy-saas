@@ -79,6 +79,8 @@
     "inbox": "Inbox",
     "status": {
       "open": "Open",
+      "treated": "Treated",
+      "validated": "Validated",
       "resolved": "Resolved",
       "all": "All"
     },
@@ -96,16 +98,17 @@
       "all": "All types"
     },
     "markResolved": "Mark resolved",
+    "markTreated": "Mark treated",
     "markOpen": "Reopen",
     "resolution": {
-      "title": "Mark as resolved",
-      "noteLabel": "Resolution note",
-      "notePlaceholder": "Describe what was done to resolve this feedback...",
-      "noteHint": "This note will be included in the recap sent to the client",
-      "submit": "Mark resolved",
-      "resolvedBy": "Resolved by {name}",
+      "title": "Mark as treated",
+      "noteLabel": "Treatment note",
+      "notePlaceholder": "Describe what was done...",
+      "noteHint": "The client can see this note and validate the treatment",
+      "submit": "Mark treated",
+      "resolvedBy": "Treated by {name}",
       "resolvedAt": "on {date}",
-      "noNote": "No resolution note"
+      "noNote": "No note"
     },
     "replay": "Replay",
     "delete": "Delete",

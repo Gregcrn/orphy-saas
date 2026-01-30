@@ -66,7 +66,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 
-type StatusFilter = "all" | "open" | "resolved";
+type StatusFilter = "all" | "open" | "treated" | "validated" | "resolved";
 
 export default function InboxPage() {
   const t = useTranslations();
@@ -180,14 +180,14 @@ export default function InboxPage() {
 
   const handleToggleStatus = (
     feedbackId: Id<"feedbacks">,
-    currentStatus: "open" | "resolved",
+    currentStatus: "open" | "treated" | "validated" | "resolved",
     comment: string
   ) => {
     if (currentStatus === "open") {
-      // Opening resolve dialog
+      // Opening resolve dialog (mark as treated)
       setResolvingFeedback({ id: feedbackId, comment });
     } else {
-      // Reopening directly
+      // Reopening from treated, validated, or resolved (legacy)
       reopen({ feedbackId });
     }
   };
@@ -208,8 +208,11 @@ export default function InboxPage() {
   // Use workspace feedbacks for stats (before client-side filtering)
   const openCount =
     workspaceFeedbacks?.filter((f) => f.status === "open").length ?? 0;
-  const resolvedCount =
-    workspaceFeedbacks?.filter((f) => f.status === "resolved").length ?? 0;
+  // Include "resolved" in treated count for backwards compatibility
+  const treatedCount =
+    workspaceFeedbacks?.filter((f) => f.status === "treated" || f.status === "resolved").length ?? 0;
+  const validatedCount =
+    workspaceFeedbacks?.filter((f) => f.status === "validated").length ?? 0;
 
   if (isLoading) {
     return (
@@ -248,8 +251,11 @@ export default function InboxPage() {
               <TabsTrigger value="open">
                 {t("feedbacks.status.open")} ({openCount})
               </TabsTrigger>
-              <TabsTrigger value="resolved">
-                {t("feedbacks.status.resolved")} ({resolvedCount})
+              <TabsTrigger value="treated">
+                {t("feedbacks.status.treated")} ({treatedCount})
+              </TabsTrigger>
+              <TabsTrigger value="validated">
+                {t("feedbacks.status.validated")} ({validatedCount})
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -329,17 +335,29 @@ export default function InboxPage() {
                       <div className="flex items-center gap-1.5">
                         <Badge
                           variant={
-                            feedback.status === "open" ? "default" : "secondary"
+                            feedback.status === "open"
+                              ? "default"
+                              : feedback.status === "treated" || feedback.status === "resolved"
+                              ? "outline"
+                              : "secondary"
                           }
-                          className="cursor-pointer"
+                          className={`cursor-pointer ${
+                            feedback.status === "treated" || feedback.status === "resolved"
+                              ? "border-blue-500 text-blue-600 bg-blue-50"
+                              : feedback.status === "validated"
+                              ? "bg-green-100 text-green-700"
+                              : ""
+                          }`}
                           onClick={() =>
-                            handleToggleStatus(feedback._id, feedback.status, feedback.comment)
+                            handleToggleStatus(feedback._id, feedback.status as "open" | "treated" | "validated" | "resolved", feedback.comment)
                           }
                         >
-                          {t(`feedbacks.status.${feedback.status}`)}
+                          {t(`feedbacks.status.${feedback.status === "resolved" ? "treated" : feedback.status}`)}
                         </Badge>
                         {feedback.resolutionNote && (
-                          <MessageSquare className="h-3 w-3 text-muted-foreground" title={feedback.resolutionNote} />
+                          <span title={feedback.resolutionNote}>
+                            <MessageSquare className="h-3 w-3 text-muted-foreground" />
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -388,11 +406,11 @@ export default function InboxPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() =>
-                              handleToggleStatus(feedback._id, feedback.status, feedback.comment)
+                              handleToggleStatus(feedback._id, feedback.status as "open" | "treated" | "validated" | "resolved", feedback.comment)
                             }
                           >
                             {feedback.status === "open"
-                              ? t("feedbacks.markResolved")
+                              ? t("feedbacks.markTreated")
                               : t("feedbacks.markOpen")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />

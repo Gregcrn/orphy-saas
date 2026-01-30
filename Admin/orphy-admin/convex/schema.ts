@@ -13,8 +13,13 @@ const feedbackType = v.union(
   v.literal("question")
 );
 
-/** Feedback status */
-const feedbackStatus = v.union(v.literal("open"), v.literal("resolved"));
+/** Feedback status - three-step workflow */
+const feedbackStatus = v.union(
+  v.literal("open"), // Feedback créé, pas encore traité
+  v.literal("treated"), // Agence a traité (nouveau)
+  v.literal("validated"), // Client a validé (nouveau)
+  v.literal("resolved") // @deprecated - Kept for backwards compatibility
+);
 
 /** Priority levels */
 const priorityLevel = v.union(
@@ -112,6 +117,12 @@ const invitationStatus = v.union(
   v.literal("accepted"),
   v.literal("expired"),
   v.literal("revoked")
+);
+
+/** Author type - who wrote the comment */
+const authorType = v.union(
+  v.literal("client"), // End user leaving feedback
+  v.literal("agency") // Team member reviewing/commenting
 );
 
 // =============================================================================
@@ -284,18 +295,30 @@ export default defineSchema({
     assignedTo: v.optional(v.id("users")),
 
     // -------------------------------------------------------------------------
-    // Resolution (when status = "resolved")
+    // Treatment (when status = "treated" - agency marks as done)
     // -------------------------------------------------------------------------
-    /** Note explaining what was done to resolve */
+    /** Note explaining what was done */
     resolutionNote: v.optional(v.string()),
-    /** Who resolved the feedback */
+    /** Who marked as treated */
     resolvedBy: v.optional(v.id("users")),
-    /** When it was resolved */
+    /** When it was marked as treated */
     resolvedAt: v.optional(v.number()),
 
     // -------------------------------------------------------------------------
-    // Metadata (optional)
+    // Validation (when status = "validated" - client confirms)
     // -------------------------------------------------------------------------
+    /** When the client validated */
+    validatedAt: v.optional(v.number()),
+
+    // -------------------------------------------------------------------------
+    // Author Information
+    // -------------------------------------------------------------------------
+    /** Who wrote this: client (end user) or agency (team member) */
+    authorType: v.optional(authorType), // Optional for backwards compat, defaults to "client"
+    /** Agency member who created this (if authorType = "agency") */
+    authorId: v.optional(v.id("users")),
+    /** Author name (for display) */
+    authorName: v.optional(v.string()),
     /** Email of person who left feedback (if provided) */
     authorEmail: v.optional(v.string()),
     /** Widget session ID for grouping feedbacks */
@@ -316,4 +339,37 @@ export default defineSchema({
     .index("by_orphyId", ["projectId", "orphyId"]) // For replay: find feedback by element
     .index("by_session", ["sessionId"]) // Group feedbacks by session
     .index("by_assignee", ["assignedTo"]), // Filter by assigned user ("My tasks")
+
+  // ---------------------------------------------------------------------------
+  // REPLIES (thread messages on feedbacks)
+  // ---------------------------------------------------------------------------
+  replies: defineTable({
+    /** Parent feedback (the thread) */
+    feedbackId: v.id("feedbacks"),
+
+    // -------------------------------------------------------------------------
+    // Author Information
+    // -------------------------------------------------------------------------
+    /** Who wrote this: client or agency */
+    authorType: authorType,
+    /** Agency member who created this (if authorType = "agency") */
+    authorId: v.optional(v.id("users")),
+    /** Author name (for display) */
+    authorName: v.optional(v.string()),
+    /** Author email */
+    authorEmail: v.optional(v.string()),
+
+    // -------------------------------------------------------------------------
+    // Content
+    // -------------------------------------------------------------------------
+    /** Reply message content */
+    content: v.string(),
+
+    // -------------------------------------------------------------------------
+    // Timestamps
+    // -------------------------------------------------------------------------
+    createdAt: v.number(),
+  })
+    .index("by_feedback", ["feedbackId"]) // Get all replies for a thread
+    .index("by_author", ["authorId"]), // Get all replies by a user
 });

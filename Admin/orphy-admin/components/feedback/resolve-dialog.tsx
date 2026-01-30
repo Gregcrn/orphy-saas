@@ -47,14 +47,14 @@ export function ResolveDialog({
     }
   }, [open, initialNote]);
 
-  const resolve = useMutation(api.feedbacks.resolve);
+  const markAsTreated = useMutation(api.feedbacks.markAsTreated);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await resolve({
+      await markAsTreated({
         feedbackId,
         resolutionNote: note.trim() || undefined,
       });

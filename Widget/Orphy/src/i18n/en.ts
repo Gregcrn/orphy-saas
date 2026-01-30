@@ -50,6 +50,7 @@ export const en: TranslationKeys = {
     feedback: "Feedback",
     done: "Done",
     review: "Review",
+    messages: "Messages",
   },
 
   // Replay mode
@@ -83,5 +84,28 @@ export const en: TranslationKeys = {
       loadError: "Failed to load feedback",
       close: "Close",
     },
+  },
+
+  // Thread panel (bidirectional comments)
+  thread: {
+    author: {
+      client: "Client",
+      agency: "Agency",
+    },
+    anonymous: "Anonymous",
+    replyPlaceholder: "Write a reply...",
+    send: "Send",
+    sending: "Sending...",
+    noReplies: "No replies yet",
+    // Validation workflow
+    status: {
+      open: "Pending",
+      treated: "Treated",
+      validated: "Validated",
+    },
+    validateInfo: "The agency has addressed this feedback. Confirm if it's resolved:",
+    validate: "Validate",
+    validating: "Validating...",
+    validated: "Validated!",
   },
 } as const;

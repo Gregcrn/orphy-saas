@@ -79,6 +79,8 @@
     "inbox": "Boîte de réception",
     "status": {
       "open": "Ouvert",
+      "treated": "Traité",
+      "validated": "Validé",
       "resolved": "Résolu",
       "all": "Tous"
     },
@@ -96,16 +98,17 @@
       "all": "Tous les types"
     },
     "markResolved": "Marquer résolu",
+    "markTreated": "Marquer traité",
     "markOpen": "Rouvrir",
     "resolution": {
-      "title": "Marquer comme résolu",
-      "noteLabel": "Note de résolution",
-      "notePlaceholder": "Décrivez ce qui a été fait pour résoudre ce feedback...",
-      "noteHint": "Cette note sera incluse dans le récap envoyé au client",
-      "submit": "Marquer résolu",
-      "resolvedBy": "Résolu par {name}",
+      "title": "Marquer comme traité",
+      "noteLabel": "Note de traitement",
+      "notePlaceholder": "Décrivez ce qui a été fait...",
+      "noteHint": "Le client pourra voir cette note et valider le traitement",
+      "submit": "Marquer traité",
+      "resolvedBy": "Traité par {name}",
       "resolvedAt": "le {date}",
-      "noNote": "Aucune note de résolution"
+      "noNote": "Aucune note"
     },
     "replay": "Rejouer",
     "delete": "Supprimer",

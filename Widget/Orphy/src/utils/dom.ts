@@ -6,7 +6,7 @@ export interface ElementOptions {
   className?: string;
   styles?: Partial<CSSStyleDeclaration>;
   attributes?: Record<string, string>;
-  children?: (HTMLElement | string)[];
+  children?: (HTMLElement | SVGSVGElement | string)[];
   onClick?: (e: MouseEvent) => void;
 }
 
@@ -35,7 +35,7 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
       if (typeof child === "string") {
         el.appendChild(document.createTextNode(child));
       } else {
-        el.appendChild(child);
+        el.appendChild(child as Node);
       }
     }
   }

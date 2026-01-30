@@ -77,7 +77,7 @@ import {
   applyFeedbackFilters,
 } from "@/components/feedback/feedback-filters";
 
-type StatusFilter = "all" | "open" | "resolved";
+type StatusFilter = "all" | "open" | "treated" | "validated" | "resolved";
 
 export default function ProjectDetailPage({
   params,
@@ -202,11 +202,11 @@ export default function ProjectDetailPage({
 
   const handleToggleStatus = (
     feedbackId: Id<"feedbacks">,
-    currentStatus: "open" | "resolved",
+    currentStatus: "open" | "treated" | "validated" | "resolved",
     comment: string,
     resolutionNote?: string
   ) => {
-    // Always open dialog - for resolving or editing existing note
+    // Always open dialog - for treating or editing existing note
     setResolvingFeedback({ id: feedbackId, comment, resolutionNote });
   };
 
@@ -262,8 +262,11 @@ export default function ProjectDetailPage({
 
   // Use raw feedbacks for stats (before client-side filtering)
   const openCount = feedbacksRaw?.filter((f) => f.status === "open").length ?? 0;
-  const resolvedCount =
-    feedbacksRaw?.filter((f) => f.status === "resolved").length ?? 0;
+  // Include "resolved" in treated count for backwards compatibility
+  const treatedCount =
+    feedbacksRaw?.filter((f) => f.status === "treated" || f.status === "resolved").length ?? 0;
+  const validatedCount =
+    feedbacksRaw?.filter((f) => f.status === "validated").length ?? 0;
 
   return (
     <TooltipProvider>
@@ -298,7 +301,7 @@ export default function ProjectDetailPage({
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -307,7 +310,7 @@ export default function ProjectDetailPage({
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{feedbacks?.length ?? 0}</div>
+              <div className="text-2xl font-bold">{feedbacksRaw?.length ?? 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -324,12 +327,23 @@ export default function ProjectDetailPage({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {t("dashboard.stats.resolvedFeedbacks")}
+                {t("feedbacks.status.treated")}
               </CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <CheckCircle2 className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{resolvedCount}</div>
+              <div className="text-2xl font-bold">{treatedCount}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {t("feedbacks.status.validated")}
+              </CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{validatedCount}</div>
             </CardContent>
           </Card>
         </div>
@@ -349,9 +363,8 @@ export default function ProjectDetailPage({
                 <SelectContent>
                   <SelectItem value="all">{t("feedbacks.status.all")}</SelectItem>
                   <SelectItem value="open">{t("feedbacks.status.open")}</SelectItem>
-                  <SelectItem value="resolved">
-                    {t("feedbacks.status.resolved")}
-                  </SelectItem>
+                  <SelectItem value="treated">{t("feedbacks.status.treated")}</SelectItem>
+                  <SelectItem value="validated">{t("feedbacks.status.validated")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -470,11 +483,23 @@ export default function ProjectDetailPage({
                         <TableCell className="py-3">
                           <div className="flex items-center gap-1.5">
                             <Badge
-                              variant={feedback.status === "open" ? "default" : "success"}
-                              className="cursor-pointer text-xs"
-                              onClick={() => handleToggleStatus(feedback._id, feedback.status, feedback.comment, feedback.resolutionNote)}
+                              variant={
+                                feedback.status === "open"
+                                  ? "default"
+                                  : feedback.status === "treated" || feedback.status === "resolved"
+                                  ? "outline"
+                                  : "secondary"
+                              }
+                              className={`cursor-pointer text-xs ${
+                                feedback.status === "treated" || feedback.status === "resolved"
+                                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                                  : feedback.status === "validated"
+                                  ? "bg-green-100 text-green-700"
+                                  : ""
+                              }`}
+                              onClick={() => handleToggleStatus(feedback._id, feedback.status as "open" | "treated" | "validated" | "resolved", feedback.comment, feedback.resolutionNote)}
                             >
-                              {t(`feedbacks.status.${feedback.status}`)}
+                              {t(`feedbacks.status.${feedback.status === "resolved" ? "treated" : feedback.status}`)}
                             </Badge>
                             {feedback.resolutionNote && (
                               <Tooltip>
@@ -557,14 +582,14 @@ export default function ProjectDetailPage({
                                 <DropdownMenuItem
                                   onClick={() => {
                                     if (feedback.status === "open") {
-                                      handleToggleStatus(feedback._id, feedback.status, feedback.comment, feedback.resolutionNote);
+                                      handleToggleStatus(feedback._id, feedback.status as "open" | "treated" | "validated" | "resolved", feedback.comment, feedback.resolutionNote);
                                     } else {
                                       reopen({ feedbackId: feedback._id });
                                     }
                                   }}
                                 >
                                   {feedback.status === "open"
-                                    ? t("feedbacks.markResolved")
+                                    ? t("feedbacks.markTreated")
                                     : t("feedbacks.markOpen")}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />

@@ -15,7 +15,9 @@ import { enterReplayMode, exitReplayMode, isReplayActive, setReplayConfig } from
 import { initMarkers, clearMarkers, updateMarkers } from "./core/markers";
 import { initBadgesLayer, destroyBadgesLayer, hideBadgesLayer, showBadgesLayer } from "./ui/badges-layer";
 import { showReviewPanel, hideReviewPanel, setSubmitLoading } from "./ui/review-panel";
-import { createToolbar, destroyToolbar } from "./ui/toolbar";
+import { createToolbar, destroyToolbar, updateMessagesBadge, setMessagesButtonVisible } from "./ui/toolbar";
+import { setThreadsConfig, fetchThreadsForPage, clearThreadsCache, createReply, type FeedbackThread, type Reply } from "./core/threads";
+import { showThreadsPanel, hideThreadsPanel } from "./ui/threads-panel";
 import { showCommentBox, hideCommentBox } from "./ui/comment-box";
 import { showToast, hideAllToasts } from "./ui/toast";
 import { injectResponsiveStyles, removeResponsiveStyles } from "./theme/responsive";
@@ -68,6 +70,11 @@ export function init(userConfig: OrphyConfig): void {
   const replayApiUrl = config.apiUrl.replace(/\/feedback\/batch$/, "/replay");
   setReplayConfig({ apiUrl: replayApiUrl });
 
+  // Set threads config for messages panel
+  // Uses /api/review for fetching feedbacks
+  const reviewApiUrl = config.apiUrl.replace(/\/feedback\/batch$/, "/review");
+  setThreadsConfig({ apiUrl: reviewApiUrl, projectId: config.projectId });
+
   // Check for replay mode
   const urlParams = new URLSearchParams(window.location.search);
   const replayId = urlParams.get("orphy_replay");
@@ -85,7 +92,10 @@ export function init(userConfig: OrphyConfig): void {
   // Initialize badges layer (floating numbered badges)
   initBadgesLayer();
 
-  createToolbar(handleToggle, handleReview);
+  createToolbar(handleToggle, handleReview, handleMessages);
+
+  // Fetch threads to show badge count (non-blocking)
+  refreshThreadsBadge();
 
   console.log(`Orphy v${VERSION} initialized`);
 }
@@ -106,8 +116,10 @@ export function destroy(): void {
   clearMarkers();
   destroyBadgesLayer();
   hideReviewPanel();
+  hideThreadsPanel();
   hideAllToasts();
   removeResponsiveStyles();
+  clearThreadsCache();
   store.reset();
   sessionStore.clearSession();
 
@@ -221,6 +233,50 @@ function handleCommentCancel(): void {
 
 function handleReview(): void {
   showReviewPanel(handleSubmitAll);
+}
+
+async function handleMessages(): Promise<void> {
+  // Fetch threads for current page
+  const threads = await fetchThreadsForPage();
+
+  showThreadsPanel(threads, {
+    onSelect: handleThreadSelect,
+    onClose: () => {
+      hideThreadsPanel();
+      hideHighlight();
+    },
+    onBackToList: hideHighlight,
+    onReplySubmit: handleReplySubmit,
+  });
+}
+
+function handleThreadSelect(thread: FeedbackThread): void {
+  // Find the element on the page and scroll/highlight it
+  const element = document.querySelector(thread.selector);
+
+  if (element) {
+    // Scroll element into view
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Show highlight on the element
+    showHighlight(element as HTMLElement);
+  }
+}
+
+async function handleReplySubmit(feedbackId: string, content: string): Promise<Reply | null> {
+  return createReply(feedbackId, content);
+}
+
+async function refreshThreadsBadge(): Promise<void> {
+  try {
+    const threads = await fetchThreadsForPage();
+    // Count threads that have agency replies (messages for client)
+    const threadsWithReplies = threads.filter((t) => t.replies.length > 0);
+    updateMessagesBadge(threadsWithReplies.length);
+    setMessagesButtonVisible(threads.length > 0);
+  } catch {
+    // Silently fail - badge will just not show
+  }
 }
 
 async function handleSubmitAll(drafts: FeedbackDraft[]): Promise<void> {
