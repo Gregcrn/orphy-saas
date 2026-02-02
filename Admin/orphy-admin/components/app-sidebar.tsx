@@ -39,6 +39,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Fetch projects from Convex
   const allProjects = useQuery(api.projects.list);
 
+  // Fetch open feedback count for notification badge
+  const openFeedbackCount = useQuery(
+    api.feedbacks.countOpenByWorkspace,
+    currentWorkspace?._id ? { workspaceId: currentWorkspace._id } : "skip"
+  );
+
   // Filter projects by current workspace
   const projects = allProjects?.filter(
     (project) => project.workspaceId === currentWorkspace?._id
@@ -57,6 +63,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       url: `/${locale}/dashboard/inbox`,
       icon: Inbox,
       isActive: pathname === `/${locale}/dashboard/inbox`,
+      badge: openFeedbackCount ?? undefined,
     },
     {
       title: t("sidebar.projects"),

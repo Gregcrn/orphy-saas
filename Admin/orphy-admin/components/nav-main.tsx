@@ -8,6 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 
 export function NavMain({
@@ -18,6 +19,7 @@ export function NavMain({
     url: string;
     icon?: LucideIcon;
     isActive?: boolean;
+    badge?: number;
   }[];
 }) {
   return (
@@ -31,6 +33,11 @@ export function NavMain({
                 <span>{item.title}</span>
               </Link>
             </SidebarMenuButton>
+            {item.badge !== undefined && item.badge > 0 && (
+              <SidebarMenuBadge className="bg-red-500 text-white">
+                {item.badge > 99 ? "99+" : item.badge}
+              </SidebarMenuBadge>
+            )}
           </SidebarMenuItem>
         ))}
       </SidebarMenu>

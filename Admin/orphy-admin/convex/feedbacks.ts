@@ -324,6 +324,47 @@ export const listAssignedToMe = query({
   },
 });
 
+/** Count open feedbacks for a workspace (for notification badge) */
+export const countOpenByWorkspace = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return 0;
+
+    // Verify user has access to this workspace
+    const membership = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", user._id)
+      )
+      .first();
+
+    if (!membership) return 0;
+
+    // Get all projects in this workspace
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+
+    // Count open feedbacks across all projects
+    let openCount = 0;
+    for (const project of projects) {
+      const openFeedbacks = await ctx.db
+        .query("feedbacks")
+        .withIndex("by_project_status", (q: any) =>
+          q.eq("projectId", project._id).eq("status", "open")
+        )
+        .collect();
+      openCount += openFeedbacks.length;
+    }
+
+    return openCount;
+  },
+});
+
 /** Get project stats */
 export const getProjectStats = query({
   args: { projectId: v.id("projects") },

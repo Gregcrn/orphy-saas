@@ -5,6 +5,7 @@
 
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 // =============================================================================
 // QUERIES
@@ -39,7 +40,7 @@ export const getPendingNotifications = internalQuery({
     // Get project and workspace details for each group
     const result = [];
     for (const [projectId, feedbacks] of byProject) {
-      const project = await ctx.db.get(projectId as any);
+      const project = await ctx.db.get(projectId as Id<"projects">);
       if (!project || !project.workspaceId) continue;
 
       const workspace = await ctx.db.get(project.workspaceId);
