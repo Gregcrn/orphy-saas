@@ -329,6 +329,12 @@ export default defineSchema({
     deviceInfo: v.optional(deviceInfo),
 
     // -------------------------------------------------------------------------
+    // Notifications
+    // -------------------------------------------------------------------------
+    /** When email notification was sent for this feedback */
+    notificationSentAt: v.optional(v.number()),
+
+    // -------------------------------------------------------------------------
     // Timestamps
     // -------------------------------------------------------------------------
     createdAt: v.number(),
@@ -338,7 +344,8 @@ export default defineSchema({
     .index("by_project_status", ["projectId", "status"])
     .index("by_orphyId", ["projectId", "orphyId"]) // For replay: find feedback by element
     .index("by_session", ["sessionId"]) // Group feedbacks by session
-    .index("by_assignee", ["assignedTo"]), // Filter by assigned user ("My tasks")
+    .index("by_assignee", ["assignedTo"]) // Filter by assigned user ("My tasks")
+    .index("by_notification_pending", ["notificationSentAt"]), // For batch email notifications
 
   // ---------------------------------------------------------------------------
   // REPLIES (thread messages on feedbacks)
