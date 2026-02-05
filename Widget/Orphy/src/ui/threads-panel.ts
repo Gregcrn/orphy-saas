@@ -105,9 +105,10 @@ export function showThreadsPanel(
   onBackToListCallback = options.onBackToList ?? null;
   onReplySubmitCallback = options.onReplySubmit ?? null;
 
-  // Create panel
+  // Create panel without backdrop (spotlight only on selection)
   slidePanelAPI = createSlidePanel({
     onClose: handlePanelClose,
+    noBackdrop: true,
   });
 
   // Render initial list view
@@ -154,6 +155,7 @@ export function showThreadDetail(
 
     slidePanelAPI = createSlidePanel({
       onClose: handlePanelClose,
+      noBackdrop: true,
     });
 
     renderDetailView();
@@ -204,7 +206,7 @@ function switchToDetailView(thread: FeedbackThread): void {
   currentThread = thread;
   selectedThreadId = thread.id;
 
-  // Call onSelect callback (for scrolling/highlighting)
+  // Call onSelect callback (for scrolling/highlighting with spotlight)
   onThreadSelectCallback?.(thread);
 
   renderDetailView();
@@ -223,7 +225,7 @@ function switchToListView(): void {
   replyInputEl = null;
   sendButtonEl = null;
 
-  // Clear highlight when returning to list
+  // Clear highlight/spotlight when returning to list
   onBackToListCallback?.();
 
   renderListView();

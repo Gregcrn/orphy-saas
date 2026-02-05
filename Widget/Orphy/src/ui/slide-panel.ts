@@ -1,8 +1,8 @@
 /**
- * SlidePanel - Generic slide panel component with backdrop
+ * SlidePanel - Generic slide panel component with optional backdrop
  *
  * Encapsulates common logic for slide panels:
- * - Backdrop with fade animation
+ * - Optional backdrop with fade animation
  * - Container with slide animation
  * - Escape key to close
  * - Content management with setContent
@@ -12,7 +12,6 @@ import { createElement } from "../utils/dom";
 import {
   colors,
   typography,
-  spacing,
   borders,
   shadows,
   transitions,
@@ -26,6 +25,8 @@ import {
 
 export interface SlidePanelOptions {
   onClose: () => void;
+  /** Don't show backdrop overlay (for spotlight mode) */
+  noBackdrop?: boolean;
 }
 
 export interface SlidePanelAPI {
@@ -50,27 +51,31 @@ let isClosing = false;
 // =============================================================================
 
 /**
- * Create a slide panel with backdrop and animations
+ * Create a slide panel with optional backdrop and animations
  */
 export function createSlidePanel(options: SlidePanelOptions): SlidePanelAPI {
   isClosing = false;
 
-  // Backdrop
-  const backdrop = createElement("div", {
-    className: "orphy-slide-panel-backdrop",
-    styles: {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: colors.overlay.backdrop,
-      zIndex: zIndex.overlay,
-      opacity: "0",
-      transition: `opacity ${transitions.duration.slow} ${transitions.easing.out}`,
-    },
-    onClick: close,
-  });
+  // Backdrop (only if not disabled)
+  let backdrop: HTMLDivElement | null = null;
+  if (!options.noBackdrop) {
+    backdrop = createElement("div", {
+      className: "orphy-slide-panel-backdrop",
+      styles: {
+        position: "fixed",
+        top: "0",
+        left: "0",
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: colors.overlay.backdrop,
+        zIndex: zIndex.overlay,
+        opacity: "0",
+        transition: `opacity ${transitions.duration.slow} ${transitions.easing.out}`,
+      },
+      onClick: close,
+    });
+    document.body.appendChild(backdrop);
+  }
 
   // Panel container
   const panel = createElement("div", {
@@ -103,14 +108,15 @@ export function createSlidePanel(options: SlidePanelOptions): SlidePanelAPI {
   };
 
   // Mount
-  document.body.appendChild(backdrop);
   document.body.appendChild(panel);
   document.addEventListener("keydown", keyHandler);
 
   // Animate in
   setTimeout(() => {
     if (!isClosing) {
-      backdrop.style.opacity = "1";
+      if (backdrop) {
+        backdrop.style.opacity = "1";
+      }
       panel.style.transform = "translateX(0)";
     }
   }, 10);
@@ -122,11 +128,13 @@ export function createSlidePanel(options: SlidePanelOptions): SlidePanelAPI {
 
     const isMobile = window.innerWidth <= 480;
     panel.style.transform = isMobile ? "translateY(100%)" : "translateX(100%)";
-    backdrop.style.opacity = "0";
+    if (backdrop) {
+      backdrop.style.opacity = "0";
+    }
 
     setTimeout(() => {
       document.removeEventListener("keydown", keyHandler);
-      backdrop.remove();
+      backdrop?.remove();
       panel.remove();
       options.onClose();
     }, 200);

@@ -9,7 +9,7 @@ import { setLocale, t, type Locale } from "./i18n";
 import { sessionStore, type FeedbackDraft } from "./core/session";
 import { getDeviceInfo, type DeviceInfo } from "./utils/device";
 import { createOverlay, destroyOverlay, lockHighlight, unlockHighlight } from "./core/overlay";
-import { destroyHighlight, hideHighlight, showHighlight } from "./core/highlight";
+import { destroyHighlight, hideHighlight, showHighlight, showSpotlight } from "./core/highlight";
 import { captureElement, type CaptureData } from "./core/capture";
 import { enterReplayMode, exitReplayMode, isReplayActive, setReplayConfig } from "./core/replay";
 import { initMarkers, clearMarkers, updateMarkers } from "./core/markers";
@@ -275,8 +275,8 @@ function handleThreadSelect(thread: FeedbackThread): void {
     // Scroll element into view
     element.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Show highlight on the element
-    showHighlight(element as HTMLElement);
+    // Show spotlight effect (cutout) on the element
+    showSpotlight(element as HTMLElement);
   }
 }
 
