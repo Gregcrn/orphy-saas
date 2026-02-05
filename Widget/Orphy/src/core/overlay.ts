@@ -5,6 +5,7 @@
  */
 
 import { createElement } from "../utils/dom";
+import { zIndex } from "../theme";
 import { store } from "./state";
 import { showHighlight, hideHighlight } from "./highlight";
 
@@ -32,7 +33,7 @@ export function createOverlay(onClick: (el: HTMLElement, x: number, y: number) =
       left: "0",
       width: "100vw",
       height: "100vh",
-      zIndex: "999998",
+      zIndex: zIndex.overlay,
       cursor: "crosshair",
       background: "transparent",
     },

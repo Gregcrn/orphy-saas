@@ -41,6 +41,7 @@ export interface OrphyConfig {
 
 let config: OrphyConfig | null = null;
 let initialized = false;
+let escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
 /**
  * Initialize the Orphy widget
@@ -173,6 +174,15 @@ function activate(): void {
   updateMarkers(); // Ensure markers are visible immediately
   showBadgesLayer(); // Show badges
   createOverlay(handleElementClick);
+
+  // Global Escape handler to exit review mode
+  escapeHandler = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      deactivate();
+    }
+  };
+  document.addEventListener("keydown", escapeHandler);
 }
 
 function deactivate(): void {
@@ -182,8 +192,15 @@ function deactivate(): void {
   hideHighlight();
   hideBadgesLayer(); // Hide badges (keep drafts)
   hideReviewPanel(); // Close panel if open
+  hideThreadsPanel(); // Close threads panel if open
   destroyOverlay();
   destroyHighlight();
+
+  // Remove global Escape handler
+  if (escapeHandler) {
+    document.removeEventListener("keydown", escapeHandler);
+    escapeHandler = null;
+  }
 }
 
 function handleElementClick(element: HTMLElement, x: number, y: number): void {

@@ -172,8 +172,10 @@ export function showThreadDetail(
 // =============================================================================
 
 function handlePanelClose(): void {
+  // Store callback before cleanup nullifies it
+  const closeCallback = onCloseCallback;
   cleanup();
-  onCloseCallback?.();
+  closeCallback?.();
 }
 
 function cleanup(): void {
@@ -840,10 +842,11 @@ function createReplyItem(reply: Reply): HTMLDivElement {
     styles: {
       display: "flex",
       alignItems: "center",
+      justifyContent: isAgency ? "flex-end" : "flex-start",
       gap: spacing.sm,
       marginBottom: spacing.xs,
     },
-    children: [authorBadge, timeEl],
+    children: isAgency ? [timeEl, authorBadge] : [authorBadge, timeEl],
   });
 
   const content = createElement("p", {
@@ -853,16 +856,29 @@ function createReplyItem(reply: Reply): HTMLDivElement {
       lineHeight: typography.lineHeight.base,
       color: colors.text.primary,
       wordBreak: "break-word",
+      textAlign: isAgency ? "right" : "left",
     },
     children: [reply.content],
   });
 
-  return createElement("div", {
+  // Message bubble style
+  const messageBubble = createElement("div", {
     styles: {
-      padding: `${spacing.md} 0`,
-      borderBottom: `${borders.width.thin} solid ${colors.border.default}`,
+      padding: spacing.md,
+      borderRadius: borders.radius.lg,
+      backgroundColor: isAgency ? AUTHOR_COLORS.agencyBg : colors.bg.secondary,
+      maxWidth: "85%",
     },
     children: [headerRow, content],
+  });
+
+  return createElement("div", {
+    styles: {
+      padding: `${spacing.sm} 0`,
+      display: "flex",
+      justifyContent: isAgency ? "flex-end" : "flex-start",
+    },
+    children: [messageBubble],
   });
 }
 

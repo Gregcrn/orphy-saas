@@ -172,8 +172,8 @@ export const transitions = {
 // =============================================================================
 
 export const zIndex = {
-  highlight: "999997",
-  overlay: "999998",
+  overlay: "999997",
+  highlight: "999998",
   toolbar: "999999",
   modal: "1000000",
   tooltip: "1000001",
