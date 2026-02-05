@@ -25,8 +25,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orphy Admin",
-  description: "Feedback management for digital agencies",
+  title: "Orphy",
+  description: "Le feedback client, directement sur le site.",
 };
 
 type Props = {

@@ -1,62 +1,58 @@
 "use client";
 
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { useTranslations } from "next-intl";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { CircleDot } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Header,
+  Hero,
+  Demo,
+  Features,
+  Faq,
+  Cta,
+  Footer,
+} from "@/components/landing";
 
 export default function Home() {
-  const t = useTranslations();
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-      <main className="flex flex-col items-center gap-8 text-center">
-        {/* Logo */}
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {t("common.appName")}
-        </h1>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          {t("common.tagline")}
-        </p>
+    <>
+      {/* Marketing landing page for visitors */}
+      <SignedOut>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main>
+            <Hero />
+            <Demo />
+            <Features />
+            <Faq />
+            <Cta />
+          </main>
+          <Footer />
+        </div>
+      </SignedOut>
 
-        {/* Auth buttons */}
-        <SignedOut>
-          <div className="flex gap-4">
-            <Link
-              href="/sign-in"
-              className="rounded-lg bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {t("auth.signIn")}
-            </Link>
-            <Link
-              href="/sign-up"
-              className="rounded-lg border border-zinc-300 px-6 py-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-50 dark:hover:bg-zinc-800"
-            >
-              {t("auth.signUp")}
-            </Link>
-          </div>
-        </SignedOut>
-
-        <SignedIn>
-          <div className="flex flex-col items-center gap-6">
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "w-16 h-16",
-                },
-              }}
-            />
-            <p className="text-zinc-600 dark:text-zinc-400">
-              {t("auth.welcome")}
+      {/* Quick dashboard access for authenticated users */}
+      <SignedIn>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+          <main className="flex flex-col items-center gap-8 text-center">
+            <div className="w-12 h-12 rounded-xl bg-[#D4A373] flex items-center justify-center">
+              <CircleDot className="w-6 h-6 text-white" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-3xl font-semibold text-foreground">
+              Bienvenue sur Orphy
+            </h1>
+            <p className="text-muted-foreground">
+              Accédez à votre tableau de bord pour gérer vos feedbacks.
             </p>
-            <Link
-              href="/dashboard"
-              className="rounded-lg bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {t("dashboard.goToDashboard")}
+            <Link href="/dashboard">
+              <Button size="lg" className="bg-[#D4A373] hover:bg-[#c49366] text-white px-8">
+                Aller au Dashboard
+              </Button>
             </Link>
-          </div>
-        </SignedIn>
-      </main>
-    </div>
+          </main>
+        </div>
+      </SignedIn>
+    </>
   );
 }

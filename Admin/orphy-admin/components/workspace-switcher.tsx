@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, Plus, Building2, User } from "lucide-react";
+import { ChevronsUpDown, Plus, CircleDot } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { useWorkspace } from "@/contexts/workspace-context";
@@ -57,12 +57,8 @@ export function WorkspaceSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                {isOwner ? (
-                  <User className="size-4" />
-                ) : (
-                  <Building2 className="size-4" />
-                )}
+              <div className="bg-[#D4A373] text-white flex aspect-square size-8 items-center justify-center rounded-lg">
+                <CircleDot className="size-4" strokeWidth={2.5} />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
@@ -90,12 +86,8 @@ export function WorkspaceSwitcher() {
                 onClick={() => setCurrentWorkspaceId(workspace._id)}
                 className="gap-2 p-2 cursor-pointer"
               >
-                <div className="flex size-6 items-center justify-center rounded-sm border">
-                  {workspace.role === "owner" ? (
-                    <User className="size-4 shrink-0" />
-                  ) : (
-                    <Building2 className="size-4 shrink-0" />
-                  )}
+                <div className="flex size-6 items-center justify-center rounded-sm bg-[#D4A373] text-white">
+                  <CircleDot className="size-3 shrink-0" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1 truncate">{workspace.name}</div>
                 {workspace._id === currentWorkspace._id && (
