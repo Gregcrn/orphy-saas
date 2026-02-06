@@ -600,6 +600,50 @@ http.route({
 });
 
 // =============================================================================
+// DEMO SEED ENDPOINT
+// =============================================================================
+
+http.route({
+  path: "/api/seed-demo",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = (await request.json()) as {
+        projectId: string;
+        pageUrl: string;
+      };
+
+      if (!body.projectId || !body.pageUrl) {
+        return corsErrorResponse("Missing projectId or pageUrl");
+      }
+
+      const result = await ctx.runMutation(internal.seed.seedDemoData, {
+        projectId: body.projectId as Id<"projects">,
+        pageUrl: body.pageUrl,
+      });
+
+      return corsResponse(result);
+    } catch (error) {
+      console.error("Error seeding demo data:", error);
+      const message =
+        error instanceof Error ? error.message : "Internal server error";
+      return corsErrorResponse(message, 500);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/seed-demo",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }),
+});
+
+// =============================================================================
 // HEALTH CHECK
 // =============================================================================
 

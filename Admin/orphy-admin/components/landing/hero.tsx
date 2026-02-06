@@ -34,9 +34,9 @@ export default function Hero() {
             Commencer gratuitement
           </Button>
         </Link>
-        <Link href="#demo">
+        <Link href="/demo" target="_blank">
           <Button size="lg" variant="outline">
-            Voir la démo
+            Essayer la démo interactive
           </Button>
         </Link>
       </div>
