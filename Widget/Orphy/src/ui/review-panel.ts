@@ -8,6 +8,12 @@ import { sessionStore, type FeedbackDraft, type DraftStatus } from "../core/sess
 import { type FeedbackType } from "../core/state";
 import { t } from "../i18n";
 import {
+  createMinimizedBar,
+  destroyMinimizedBar,
+  type MinimizedBarAPI,
+  type MinimizedItem,
+} from "./minimized-bar";
+import {
   colors,
   typography,
   spacing,
@@ -24,6 +30,7 @@ let footerEl: HTMLDivElement | null = null;
 let submitBtnEl: HTMLButtonElement | null = null;
 let isSubmitting = false;
 let onSubmitAllCallback: ((drafts: FeedbackDraft[]) => void) | null = null;
+let minimizedBarAPI: MinimizedBarAPI | null = null;
 
 // =============================================================================
 // PUBLIC API
@@ -33,6 +40,12 @@ export function showReviewPanel(
   onSubmitAll: (drafts: FeedbackDraft[]) => void
 ): void {
   if (panelEl) return;
+
+  // Destroy minimized bar if active
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
 
   onSubmitAllCallback = onSubmitAll;
 
@@ -114,6 +127,12 @@ export function showReviewPanel(
 }
 
 export function hideReviewPanel(): void {
+  // Destroy minimized bar if active
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
+
   if (!panelEl) return;
 
   const backdrop = document.querySelector(".orphy-review-backdrop");
@@ -136,6 +155,76 @@ export function hideReviewPanel(): void {
     isSubmitting = false;
     onSubmitAllCallback = null;
   }, 300);
+}
+
+function minimizeReviewPanel(): void {
+  if (!panelEl) return;
+
+  // Save callback before closing panel
+  const savedCallback = onSubmitAllCallback;
+
+  // Map drafts to minimized items
+  const drafts = sessionStore.getDrafts();
+  const items: MinimizedItem[] = drafts.map((draft) => ({
+    id: draft.tempId,
+    typeLabel: t(`types.${draft.feedbackType}`),
+    typeColor: getTypeColor(draft.feedbackType),
+    comment: draft.comment,
+  }));
+
+  // Close panel (without destroying minimized bar)
+  const backdrop = document.querySelector(".orphy-review-backdrop");
+  const isMobile = window.innerWidth <= 480;
+  panelEl.style.transform = isMobile ? "translateY(100%)" : "translateX(100%)";
+  if (backdrop instanceof HTMLElement) {
+    backdrop.style.opacity = "0";
+  }
+
+  setTimeout(() => {
+    panelEl?.remove();
+    backdrop?.remove();
+    panelEl = null;
+    listEl = null;
+    footerEl = null;
+    submitBtnEl = null;
+    isSubmitting = false;
+    // Keep onSubmitAllCallback for when panel is restored
+  }, 300);
+
+  // Create minimized bar
+  if (items.length > 0) {
+    minimizedBarAPI = createMinimizedBar({
+      items,
+      onExpand: () => {
+        // Don't null minimizedBarAPI here — showReviewPanel will destroy & null it
+        if (savedCallback) {
+          showReviewPanel(savedCallback);
+        }
+      },
+      onItemChange: (item) => {
+        // Find draft element and scroll to it
+        const draft = drafts.find((d) => d.tempId === item.id);
+        if (draft?.element?.isConnected) {
+          draft.element.scrollIntoView({ block: "center", behavior: "smooth" });
+          draft.element.classList.add("orphy-flash-highlight");
+          setTimeout(() => {
+            draft.element.classList.remove("orphy-flash-highlight");
+          }, 1000);
+        }
+      },
+    });
+  }
+}
+
+export function isReviewPanelMinimized(): boolean {
+  return minimizedBarAPI !== null;
+}
+
+export function destroyReviewMinimizedBar(): void {
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
 }
 
 // =============================================================================
@@ -162,11 +251,36 @@ function createHeader(): HTMLDivElement {
     children: [t("reviewPanel.subtitle")],
   });
 
+  // Header buttons container (minimize + close)
+  const minimizeBtn = createElement("button", {
+    styles: {
+      padding: spacing.xs,
+      border: "none",
+      borderRadius: borders.radius.md,
+      backgroundColor: "transparent",
+      color: colors.text.tertiary,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: `all ${transitions.duration.base} ${transitions.easing.default}`,
+    },
+    onClick: minimizeReviewPanel,
+    attributes: { title: t("minimizedBar.minimize") },
+    children: [createChevronDownIcon()],
+  });
+
+  minimizeBtn.addEventListener("mouseenter", () => {
+    minimizeBtn.style.backgroundColor = colors.bg.secondary;
+    minimizeBtn.style.color = colors.text.primary;
+  });
+  minimizeBtn.addEventListener("mouseleave", () => {
+    minimizeBtn.style.backgroundColor = "transparent";
+    minimizeBtn.style.color = colors.text.tertiary;
+  });
+
   const closeBtn = createElement("button", {
     styles: {
-      position: "absolute",
-      top: spacing.lg,
-      right: spacing.lg,
       padding: spacing.xs,
       border: "none",
       borderRadius: borders.radius.md,
@@ -191,13 +305,25 @@ function createHeader(): HTMLDivElement {
     closeBtn.style.color = colors.text.tertiary;
   });
 
+  const headerButtons = createElement("div", {
+    styles: {
+      position: "absolute",
+      top: spacing.lg,
+      right: spacing.lg,
+      display: "flex",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    children: [minimizeBtn, closeBtn],
+  });
+
   return createElement("div", {
     styles: {
       position: "relative",
       padding: spacing.xl,
       borderBottom: `${borders.width.thin} solid ${colors.border.default}`,
     },
-    children: [title, subtitle, closeBtn],
+    children: [title, subtitle, headerButtons],
   });
 }
 
@@ -768,4 +894,37 @@ function createErrorIcon(size: number = 14): HTMLElement {
   svg.appendChild(path2);
 
   return svg as unknown as HTMLElement;
+}
+
+function createChevronDownIcon(): HTMLElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.5");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "m6 9 6 6 6-6");
+  svg.appendChild(path);
+
+  return svg as unknown as HTMLElement;
+}
+
+// =============================================================================
+// TYPE COLOR MAPPING (for minimized bar)
+// =============================================================================
+
+const TYPE_COLORS: Record<FeedbackType, string> = {
+  bug: "#ef4444",
+  design: "#8b5cf6",
+  content: "#3b82f6",
+  question: "#f59e0b",
+};
+
+function getTypeColor(type: FeedbackType): string {
+  return TYPE_COLORS[type];
 }

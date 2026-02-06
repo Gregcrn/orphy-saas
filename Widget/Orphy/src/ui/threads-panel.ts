@@ -9,6 +9,12 @@
 import { createElement } from "../utils/dom";
 import { t } from "../i18n";
 import { createSlidePanel, type SlidePanelAPI } from "./slide-panel";
+import {
+  createMinimizedBar,
+  destroyMinimizedBar,
+  type MinimizedBarAPI,
+  type MinimizedItem,
+} from "./minimized-bar";
 import type { FeedbackThread, Reply } from "../core/threads";
 import { validateFeedback } from "../core/threads";
 import type { FeedbackType } from "../core/state";
@@ -58,6 +64,9 @@ let currentView: ViewMode = "list";
 let currentThread: FeedbackThread | null = null;
 let threads: FeedbackThread[] = [];
 let selectedThreadId: string | null = null;
+let minimizedBarAPI: MinimizedBarAPI | null = null;
+let minimizedFromView: ViewMode = "list";
+let isMinimizing = false;
 
 // Callbacks
 let onThreadSelectCallback: ((thread: FeedbackThread) => void) | null = null;
@@ -88,6 +97,12 @@ export function showThreadsPanel(
   threadsList: FeedbackThread[],
   options: ThreadsPanelOptions
 ): void {
+  // Destroy minimized bar if active
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
+
   // If already open, just update content
   if (slidePanelAPI?.isOpen()) {
     threads = threadsList;
@@ -116,7 +131,23 @@ export function showThreadsPanel(
 }
 
 export function hideThreadsPanel(): void {
+  // Destroy minimized bar if active
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
   slidePanelAPI?.close();
+}
+
+export function isThreadsPanelMinimized(): boolean {
+  return minimizedBarAPI !== null;
+}
+
+export function destroyThreadsMinimizedBar(): void {
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
 }
 
 export function updateThreadsPanel(threadsList: FeedbackThread[]): void {
@@ -174,6 +205,19 @@ export function showThreadDetail(
 // =============================================================================
 
 function handlePanelClose(): void {
+  // During minimize, only clean up panel state — don't touch the bar or fire close callback
+  if (isMinimizing) {
+    isMinimizing = false;
+    cleanup();
+    return;
+  }
+
+  // Destroy minimized bar if active
+  if (minimizedBarAPI) {
+    minimizedBarAPI.destroy();
+    minimizedBarAPI = null;
+  }
+
   // Store callback before cleanup nullifies it
   const closeCallback = onCloseCallback;
   cleanup();
@@ -264,7 +308,29 @@ function createListHeader(count: number): HTMLDivElement {
     children: [`${count} conversation${count > 1 ? "s" : ""}`],
   });
 
-  const closeBtn = createCloseButton(() => slidePanelAPI?.close());
+  const minimizeBtn = createHeaderButton(
+    createChevronDownIcon(),
+    t("minimizedBar.minimize"),
+    () => minimizeThreadsPanel()
+  );
+
+  const closeBtn = createHeaderButton(
+    createCloseIcon(),
+    "",
+    () => slidePanelAPI?.close()
+  );
+
+  const headerButtons = createElement("div", {
+    styles: {
+      position: "absolute",
+      top: spacing.lg,
+      right: spacing.lg,
+      display: "flex",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    children: [minimizeBtn, closeBtn],
+  });
 
   return createElement("div", {
     styles: {
@@ -272,7 +338,7 @@ function createListHeader(count: number): HTMLDivElement {
       padding: spacing.xl,
       borderBottom: `${borders.width.thin} solid ${colors.border.default}`,
     },
-    children: [title, subtitle, closeBtn],
+    children: [title, subtitle, headerButtons],
   });
 }
 
@@ -564,6 +630,36 @@ function createDetailHeader(thread: FeedbackThread): HTMLDivElement {
     children: [formatRelativeTime(thread.createdAt ?? thread.timestamp)],
   });
 
+  // Minimize button
+  const minimizeBtn = createElement("button", {
+    styles: {
+      width: "28px",
+      height: "28px",
+      border: "none",
+      borderRadius: borders.radius.md,
+      backgroundColor: "transparent",
+      color: colors.text.tertiary,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: spacing.sm,
+      transition: `all ${transitions.duration.base} ${transitions.easing.default}`,
+    },
+    onClick: () => minimizeThreadsPanel(),
+    attributes: { title: t("minimizedBar.minimize") },
+    children: [createChevronDownIcon()],
+  }) as HTMLButtonElement;
+
+  minimizeBtn.addEventListener("mouseenter", () => {
+    minimizeBtn.style.backgroundColor = colors.bg.secondary;
+    minimizeBtn.style.color = colors.text.primary;
+  });
+  minimizeBtn.addEventListener("mouseleave", () => {
+    minimizeBtn.style.backgroundColor = "transparent";
+    minimizeBtn.style.color = colors.text.tertiary;
+  });
+
   // Close button
   const closeBtn = createElement("button", {
     styles: {
@@ -577,7 +673,7 @@ function createDetailHeader(thread: FeedbackThread): HTMLDivElement {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      marginLeft: spacing.sm,
+      marginLeft: spacing.xs,
       transition: `all ${transitions.duration.base} ${transitions.easing.default}`,
     },
     onClick: () => slidePanelAPI?.close(),
@@ -599,7 +695,7 @@ function createDetailHeader(thread: FeedbackThread): HTMLDivElement {
       display: "flex",
       alignItems: "center",
     },
-    children: [timeEl, closeBtn],
+    children: [timeEl, minimizeBtn, closeBtn],
   });
 
   return createElement("div", {
@@ -1030,8 +1126,125 @@ async function handleSendReply(): Promise<void> {
 }
 
 // =============================================================================
+// MINIMIZE
+// =============================================================================
+
+function minimizeThreadsPanel(): void {
+  if (!slidePanelAPI) return;
+
+  // Save state for restoration
+  minimizedFromView = currentView;
+  const savedThreads = [...threads];
+  const savedCurrentThread = currentThread;
+  const savedSelectCallback = onThreadSelectCallback;
+  const savedCloseCallback = onCloseCallback;
+  const savedBackCallback = onBackToListCallback;
+  const savedReplyCallback = onReplySubmitCallback;
+
+  // Map threads to minimized items
+  const items: MinimizedItem[] = savedThreads.map((thread) => {
+    const status = thread.status || "open";
+    const statusConfig = STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS.open;
+    return {
+      id: thread.id,
+      typeLabel: t(`types.${thread.feedbackType}`),
+      typeColor: TYPE_COLORS[thread.feedbackType],
+      comment: thread.comment,
+      statusLabel: statusConfig.label,
+      statusColor: statusConfig.color,
+      statusBg: statusConfig.bg,
+    };
+  });
+
+  // Find initial index based on current view
+  let initialIndex = 0;
+  if (savedCurrentThread) {
+    const idx = savedThreads.findIndex((thr) => thr.id === savedCurrentThread.id);
+    if (idx >= 0) initialIndex = idx;
+  }
+
+  // Set flag so handlePanelClose only cleans up panel state (not the bar or close callback)
+  isMinimizing = true;
+  slidePanelAPI.close();
+
+  // Create minimized bar
+  if (items.length > 0) {
+    minimizedBarAPI = createMinimizedBar({
+      items,
+      initialIndex,
+      onExpand: () => {
+        // Don't null minimizedBarAPI here — showThreadsPanel will destroy & null it
+
+        // Reopen panel in the view it was minimized from
+        const panelOpts: ThreadsPanelOptions = {
+          onSelect: savedSelectCallback!,
+          onClose: () => {
+            hideThreadsPanel();
+            savedCloseCallback?.();
+          },
+        };
+        if (savedBackCallback) panelOpts.onBackToList = savedBackCallback;
+        if (savedReplyCallback) panelOpts.onReplySubmit = savedReplyCallback;
+        showThreadsPanel(savedThreads, panelOpts);
+
+        // If was in detail view, switch to detail
+        if (minimizedFromView === "detail" && savedCurrentThread && savedReplyCallback) {
+          const thread = savedThreads.find((thr) => thr.id === savedCurrentThread.id);
+          if (thread) {
+            const detailOpts: Parameters<typeof showThreadDetail>[1] = {
+              onReplySubmit: savedReplyCallback,
+              onClose: () => savedCloseCallback?.(),
+            };
+            if (savedBackCallback) detailOpts.onBack = savedBackCallback;
+            showThreadDetail(thread, detailOpts);
+          }
+        }
+      },
+      onItemChange: (item) => {
+        // Find thread and trigger select callback to scroll/highlight
+        const thread = savedThreads.find((thr) => thr.id === item.id);
+        if (thread) {
+          savedSelectCallback?.(thread);
+        }
+      },
+    });
+  }
+}
+
+// =============================================================================
 // ICONS - Created programmatically for security (no innerHTML with user input)
 // =============================================================================
+
+function createHeaderButton(icon: SVGSVGElement, title: string, onClick: () => void): HTMLButtonElement {
+  const btn = createElement("button", {
+    styles: {
+      padding: spacing.xs,
+      border: "none",
+      borderRadius: borders.radius.md,
+      backgroundColor: "transparent",
+      color: colors.text.tertiary,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: `all ${transitions.duration.base} ${transitions.easing.default}`,
+    },
+    onClick,
+    attributes: title ? { title } : {},
+    children: [icon as unknown as HTMLElement],
+  }) as HTMLButtonElement;
+
+  btn.addEventListener("mouseenter", () => {
+    btn.style.backgroundColor = colors.bg.secondary;
+    btn.style.color = colors.text.primary;
+  });
+  btn.addEventListener("mouseleave", () => {
+    btn.style.backgroundColor = "transparent";
+    btn.style.color = colors.text.tertiary;
+  });
+
+  return btn;
+}
 
 function createCloseButton(onClick: () => void): HTMLButtonElement {
   const closeBtn = createElement("button", {
@@ -1111,6 +1324,26 @@ function createBackIcon(): SVGSVGElement {
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", "m15 18-6-6 6-6");
+  svg.appendChild(path);
+
+  return svg;
+}
+
+function createChevronDownIcon(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.5");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.style.display = "block";
+  svg.style.flexShrink = "0";
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "m6 9 6 6 6-6");
   svg.appendChild(path);
 
   return svg;

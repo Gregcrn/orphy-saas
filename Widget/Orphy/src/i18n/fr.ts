@@ -106,6 +106,14 @@ export const fr = {
     validating: "Validation...",
     validated: "Validé !",
   },
+
+  // Minimized bar
+  minimizedBar: {
+    expand: "Agrandir",
+    previous: "Précédent",
+    next: "Suivant",
+    minimize: "Réduire",
+  },
 } as const;
 
 // Define structure type (allows any string values)
@@ -198,5 +206,11 @@ export interface TranslationKeys {
     validate: string;
     validating: string;
     validated: string;
+  };
+  minimizedBar: {
+    expand: string;
+    previous: string;
+    next: string;
+    minimize: string;
   };
 }

@@ -108,4 +108,12 @@ export const en: TranslationKeys = {
     validating: "Validating...",
     validated: "Validated!",
   },
+
+  // Minimized bar
+  minimizedBar: {
+    expand: "Expand",
+    previous: "Previous",
+    next: "Next",
+    minimize: "Minimize",
+  },
 } as const;

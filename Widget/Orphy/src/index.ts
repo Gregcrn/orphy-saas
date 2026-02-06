@@ -14,10 +14,10 @@ import { captureElement, type CaptureData } from "./core/capture";
 import { enterReplayMode, exitReplayMode, isReplayActive, setReplayConfig } from "./core/replay";
 import { initMarkers, clearMarkers, updateMarkers } from "./core/markers";
 import { initBadgesLayer, destroyBadgesLayer, hideBadgesLayer, showBadgesLayer } from "./ui/badges-layer";
-import { showReviewPanel, hideReviewPanel, setSubmitLoading } from "./ui/review-panel";
+import { showReviewPanel, hideReviewPanel, setSubmitLoading, isReviewPanelMinimized, destroyReviewMinimizedBar } from "./ui/review-panel";
 import { createToolbar, destroyToolbar, updateMessagesBadge, setMessagesButtonVisible } from "./ui/toolbar";
 import { setThreadsConfig, fetchThreadsForPage, clearThreadsCache, createReply, type FeedbackThread, type Reply } from "./core/threads";
-import { showThreadsPanel, hideThreadsPanel } from "./ui/threads-panel";
+import { showThreadsPanel, hideThreadsPanel, isThreadsPanelMinimized, destroyThreadsMinimizedBar } from "./ui/threads-panel";
 import { showCommentBox, hideCommentBox } from "./ui/comment-box";
 import { showToast, hideAllToasts } from "./ui/toast";
 import { injectResponsiveStyles, removeResponsiveStyles } from "./theme/responsive";
@@ -116,6 +116,8 @@ export function destroy(): void {
   destroyToolbar();
   clearMarkers();
   destroyBadgesLayer();
+  destroyReviewMinimizedBar();
+  destroyThreadsMinimizedBar();
   hideReviewPanel();
   hideThreadsPanel();
   hideAllToasts();
@@ -191,6 +193,8 @@ function deactivate(): void {
   hideCommentBox();
   hideHighlight();
   hideBadgesLayer(); // Hide badges (keep drafts)
+  destroyReviewMinimizedBar(); // Cleanup minimized bar
+  destroyThreadsMinimizedBar(); // Cleanup minimized bar
   hideReviewPanel(); // Close panel if open
   hideThreadsPanel(); // Close threads panel if open
   destroyOverlay();
@@ -249,10 +253,19 @@ function handleCommentCancel(): void {
 }
 
 function handleReview(): void {
+  // If threads minimized bar is active, destroy it first
+  if (isThreadsPanelMinimized()) {
+    destroyThreadsMinimizedBar();
+  }
   showReviewPanel(handleSubmitAll);
 }
 
 async function handleMessages(): Promise<void> {
+  // If review minimized bar is active, destroy it first
+  if (isReviewPanelMinimized()) {
+    destroyReviewMinimizedBar();
+  }
+
   // Fetch threads for current page
   const threads = await fetchThreadsForPage();
 
