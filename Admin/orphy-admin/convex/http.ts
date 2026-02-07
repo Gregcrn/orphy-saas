@@ -9,25 +9,89 @@ const http = httpRouter();
 // CORS CONFIGURATION
 // =============================================================================
 
-const CORS_HEADERS = {
+/** Base CORS headers (used for preflight OPTIONS responses) */
+const PREFLIGHT_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-Session-Id, X-User-Agent",
   "Access-Control-Max-Age": "86400",
 } as const;
 
-function corsResponse(body: unknown, status: number = 200) {
+/** Build CORS headers with a specific allowed origin */
+function corsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Session-Id, X-User-Agent",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
+
+function corsResponse(body: unknown, origin: string, status: number = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json",
-      ...CORS_HEADERS,
+      ...corsHeaders(origin),
     },
   });
 }
 
-function corsErrorResponse(error: string, status: number = 400) {
-  return corsResponse({ success: false, error }, status);
+function corsErrorResponse(error: string, origin: string, status: number = 400) {
+  return corsResponse({ success: false, error }, origin, status);
+}
+
+// =============================================================================
+// ORIGIN VALIDATION
+// =============================================================================
+
+/**
+ * Extract the hostname from a URL string (e.g. "https://example.com/path" → "example.com")
+ */
+function extractHostname(urlStr: string): string | null {
+  try {
+    const url = new URL(urlStr);
+    return url.hostname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if a request Origin is allowed for a given project.
+ * Returns the validated origin string, or null if rejected.
+ */
+function isOriginAllowed(
+  origin: string,
+  projectUrl: string,
+  allowedDomains?: string[]
+): boolean {
+  const originHostname = extractHostname(origin);
+  if (!originHostname) return false;
+
+  // Always allow localhost / 127.0.0.1 for development
+  if (originHostname === "localhost" || originHostname === "127.0.0.1") {
+    return true;
+  }
+
+  // Check against allowedDomains if configured
+  if (allowedDomains && allowedDomains.length > 0) {
+    return allowedDomains.some((domain) => {
+      const d = domain.toLowerCase();
+      const h = originHostname.toLowerCase();
+      // Exact match or subdomain match (e.g. "example.com" allows "www.example.com")
+      return h === d || h.endsWith("." + d);
+    });
+  }
+
+  // Fallback: check against the project URL's hostname
+  const projectHostname = extractHostname(projectUrl);
+  if (!projectHostname) return false;
+
+  const h = originHostname.toLowerCase();
+  const p = projectHostname.toLowerCase();
+  return h === p || h.endsWith("." + p);
 }
 
 // =============================================================================
@@ -226,24 +290,43 @@ http.route({
   path: "/api/feedback/batch",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       // Parse request body
       const body = await request.json() as BatchRequest;
 
       // Validate projectId
       if (!body.projectId || typeof body.projectId !== "string") {
-        return corsErrorResponse("Missing or invalid projectId");
+        return corsErrorResponse("Missing or invalid projectId", origin);
+      }
+
+      // Validate origin against project's allowed domains
+      const projectData = await ctx.runQuery(internal.feedbacks.getProjectOriginData, {
+        projectId: body.projectId as Id<"projects">,
+      });
+
+      if (!projectData) {
+        return corsErrorResponse("Project not found", origin, 404);
+      }
+
+      if (!projectData.isActive) {
+        return corsErrorResponse("Project is not active", origin, 403);
+      }
+
+      if (origin !== "*" && !isOriginAllowed(origin, projectData.url, projectData.allowedDomains)) {
+        return corsErrorResponse("Origin not allowed", origin, 403);
       }
 
       // Validate feedbacks array
       if (!Array.isArray(body.feedbacks) || body.feedbacks.length === 0) {
-        return corsErrorResponse("Missing or empty feedbacks array");
+        return corsErrorResponse("Missing or empty feedbacks array", origin);
       }
 
       // Limit batch size to prevent abuse
       const MAX_BATCH_SIZE = 50;
       if (body.feedbacks.length > MAX_BATCH_SIZE) {
-        return corsErrorResponse(`Batch size exceeds maximum of ${MAX_BATCH_SIZE}`);
+        return corsErrorResponse(`Batch size exceeds maximum of ${MAX_BATCH_SIZE}`, origin);
       }
 
       // Get optional metadata from headers or body
@@ -256,7 +339,7 @@ http.route({
       for (let i = 0; i < body.feedbacks.length; i++) {
         const result = validateFeedback(body.feedbacks[i], i);
         if (!result.valid) {
-          return corsErrorResponse(result.error);
+          return corsErrorResponse(result.error, origin);
         }
         validatedFeedbacks.push(result.data);
       }
@@ -296,7 +379,7 @@ http.route({
 
       // If all failed, return error
       if (createdFeedbacks.length === 0) {
-        return corsErrorResponse(errors.join("; "), 500);
+        return corsErrorResponse(errors.join("; "), origin, 500);
       }
 
       // Return success with created feedback IDs
@@ -305,12 +388,12 @@ http.route({
         feedbacks: createdFeedbacks,
         // Include errors if some failed (partial success)
         ...(errors.length > 0 && { warnings: errors }),
-      }, 201);
+      }, origin, 201);
 
     } catch (error) {
       console.error("Error in batch feedback endpoint:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -323,18 +406,37 @@ http.route({
   path: "/api/feedback",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       const body = await request.json() as FeedbackPayload & { projectId: string };
 
       // Validate projectId
       if (!body.projectId || typeof body.projectId !== "string") {
-        return corsErrorResponse("Missing or invalid projectId");
+        return corsErrorResponse("Missing or invalid projectId", origin);
+      }
+
+      // Validate origin against project's allowed domains
+      const projectData = await ctx.runQuery(internal.feedbacks.getProjectOriginData, {
+        projectId: body.projectId as Id<"projects">,
+      });
+
+      if (!projectData) {
+        return corsErrorResponse("Project not found", origin, 404);
+      }
+
+      if (!projectData.isActive) {
+        return corsErrorResponse("Project is not active", origin, 403);
+      }
+
+      if (origin !== "*" && !isOriginAllowed(origin, projectData.url, projectData.allowedDomains)) {
+        return corsErrorResponse("Origin not allowed", origin, 403);
       }
 
       // Validate feedback
       const result = validateFeedback(body, 0);
       if (!result.valid) {
-        return corsErrorResponse(result.error);
+        return corsErrorResponse(result.error, origin);
       }
 
       // Get optional metadata
@@ -361,12 +463,12 @@ http.route({
       return corsResponse({
         success: true,
         feedbackId,
-      }, 201);
+      }, origin, 201);
 
     } catch (error) {
       console.error("Error in single feedback endpoint:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -382,6 +484,8 @@ http.route({
   pathPrefix: "/api/replay/",
   method: "PATCH",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       // Extract feedbackId from URL path like /api/replay/{feedbackId}/status
       const url = new URL(request.url);
@@ -389,7 +493,20 @@ http.route({
       const feedbackId = pathAfterPrefix.split("/")[0];
 
       if (!feedbackId) {
-        return corsErrorResponse("Missing feedbackId", 400);
+        return corsErrorResponse("Missing feedbackId", origin, 400);
+      }
+
+      // Validate origin against project
+      const projectData = await ctx.runQuery(internal.feedbacks.getProjectOriginDataByFeedback, {
+        feedbackId: feedbackId as Id<"feedbacks">,
+      });
+
+      if (!projectData) {
+        return corsErrorResponse("Feedback not found", origin, 404);
+      }
+
+      if (origin !== "*" && !isOriginAllowed(origin, projectData.url, projectData.allowedDomains)) {
+        return corsErrorResponse("Origin not allowed", origin, 403);
       }
 
       // Parse body
@@ -397,33 +514,30 @@ http.route({
 
       const validStatuses = ["open", "treated", "validated", "resolved"]; // Keep "resolved" for backwards compat
       if (!body.status || !validStatuses.includes(body.status)) {
-        return corsErrorResponse("Invalid status (must be 'open', 'treated', or 'validated')", 400);
+        return corsErrorResponse("Invalid status (must be 'open', 'treated', or 'validated')", origin, 400);
       }
 
       // Handle status transitions
       if (body.status === "treated" || body.status === "resolved") {
-        // Agency marks as treated (resolved is alias for treated for backwards compat)
         await ctx.runMutation(internal.feedbacks.resolveFromWidget, {
           feedbackId: feedbackId as Id<"feedbacks">,
         });
       } else if (body.status === "validated") {
-        // Client validates (requires status to be "treated")
         await ctx.runMutation(internal.feedbacks.validateFromWidget, {
           feedbackId: feedbackId as Id<"feedbacks">,
         });
       } else {
-        // Reopen (status = "open")
         await ctx.runMutation(internal.feedbacks.updateStatusFromWidget, {
           feedbackId: feedbackId as Id<"feedbacks">,
           status: "open",
         });
       }
 
-      return corsResponse({ success: true });
+      return corsResponse({ success: true }, origin);
     } catch (error) {
       console.error("Error updating feedback status:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -433,38 +547,57 @@ http.route({
   pathPrefix: "/api/replay/",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       const url = new URL(request.url);
       const pathParts = url.pathname.replace("/api/replay/", "").split("/");
       const feedbackId = pathParts[0];
       const resource = pathParts[1];
 
+      if (!feedbackId) {
+        return corsErrorResponse("Missing feedbackId", origin, 400);
+      }
+
+      // Validate origin against project
+      const projectData = await ctx.runQuery(internal.feedbacks.getProjectOriginDataByFeedback, {
+        feedbackId: feedbackId as Id<"feedbacks">,
+      });
+
+      if (!projectData) {
+        return corsErrorResponse("Feedback not found", origin, 404);
+      }
+
+      if (origin !== "*" && !isOriginAllowed(origin, projectData.url, projectData.allowedDomains)) {
+        return corsErrorResponse("Origin not allowed", origin, 403);
+      }
+
       // If requesting replies
-      if (resource === "replies" && feedbackId) {
+      if (resource === "replies") {
         const replies = await ctx.runQuery(internal.feedbacks.getRepliesForReplay, {
           feedbackId: feedbackId as Id<"feedbacks">,
         });
-        return corsResponse({ replies });
+        return corsResponse({ replies }, origin);
       }
 
-      // Otherwise, get the feedback itself (existing behavior)
-      if (feedbackId && !resource) {
+      // Otherwise, get the feedback itself
+      if (!resource) {
         const feedback = await ctx.runQuery(internal.feedbacks.getForReplayById, {
           feedbackId: feedbackId as Id<"feedbacks">,
         });
 
         if (!feedback) {
-          return corsErrorResponse("Feedback not found", 404);
+          return corsErrorResponse("Feedback not found", origin, 404);
         }
 
-        return corsResponse({ feedback });
+        return corsResponse({ feedback }, origin);
       }
 
-      return corsErrorResponse("Invalid request", 400);
+      return corsErrorResponse("Invalid request", origin, 400);
     } catch (error) {
       console.error("Error in replay GET:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -474,6 +607,8 @@ http.route({
   pathPrefix: "/api/replay/",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       const url = new URL(request.url);
       const pathParts = url.pathname.replace("/api/replay/", "").split("/");
@@ -481,7 +616,20 @@ http.route({
       const resource = pathParts[1];
 
       if (resource !== "replies" || !feedbackId) {
-        return corsErrorResponse("Invalid endpoint", 400);
+        return corsErrorResponse("Invalid endpoint", origin, 400);
+      }
+
+      // Validate origin against project
+      const projectData = await ctx.runQuery(internal.feedbacks.getProjectOriginDataByFeedback, {
+        feedbackId: feedbackId as Id<"feedbacks">,
+      });
+
+      if (!projectData) {
+        return corsErrorResponse("Feedback not found", origin, 404);
+      }
+
+      if (origin !== "*" && !isOriginAllowed(origin, projectData.url, projectData.allowedDomains)) {
+        return corsErrorResponse("Origin not allowed", origin, 403);
       }
 
       const body = await request.json() as {
@@ -491,7 +639,7 @@ http.route({
       };
 
       if (!body.content || typeof body.content !== "string" || !body.content.trim()) {
-        return corsErrorResponse("Missing or empty content", 400);
+        return corsErrorResponse("Missing or empty content", origin, 400);
       }
 
       const replyId = await ctx.runMutation(internal.feedbacks.createReplyFromWidget, {
@@ -501,11 +649,11 @@ http.route({
         authorEmail: body.authorEmail,
       });
 
-      return corsResponse({ success: true, replyId }, 201);
+      return corsResponse({ success: true, replyId }, origin, 201);
     } catch (error) {
       console.error("Error creating reply:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -518,7 +666,7 @@ http.route({
     return new Response(null, {
       status: 204,
       headers: {
-        ...CORS_HEADERS,
+        ...PREFLIGHT_CORS_HEADERS,
         "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
       },
     });
@@ -534,13 +682,28 @@ http.route({
   pathPrefix: "/api/review/project/",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       const url = new URL(request.url);
       const projectId = url.pathname.replace("/api/review/project/", "").split("/")[0];
       const pageUrl = url.searchParams.get("pageUrl") || undefined;
 
       if (!projectId) {
-        return corsErrorResponse("Missing projectId", 400);
+        return corsErrorResponse("Missing projectId", origin, 400);
+      }
+
+      // Validate origin against project
+      const projectData = await ctx.runQuery(internal.feedbacks.getProjectOriginData, {
+        projectId: projectId as Id<"projects">,
+      });
+
+      if (!projectData) {
+        return corsErrorResponse("Project not found", origin, 404);
+      }
+
+      if (origin !== "*" && !isOriginAllowed(origin, projectData.url, projectData.allowedDomains)) {
+        return corsErrorResponse("Origin not allowed", origin, 403);
       }
 
       const feedbacks = await ctx.runQuery(internal.feedbacks.getForReviewByProject, {
@@ -548,11 +711,11 @@ http.route({
         pageUrl,
       });
 
-      return corsResponse({ feedbacks });
+      return corsResponse({ feedbacks }, origin);
     } catch (error) {
       console.error("Error in review GET:", error);
       const message = error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -565,7 +728,7 @@ http.route({
     return new Response(null, {
       status: 204,
       headers: {
-        ...CORS_HEADERS,
+        ...PREFLIGHT_CORS_HEADERS,
         "Access-Control-Allow-Methods": "GET, OPTIONS",
       },
     });
@@ -582,7 +745,7 @@ http.route({
   handler: httpAction(async () => {
     return new Response(null, {
       status: 204,
-      headers: CORS_HEADERS,
+      headers: PREFLIGHT_CORS_HEADERS,
     });
   }),
 });
@@ -593,7 +756,7 @@ http.route({
   handler: httpAction(async () => {
     return new Response(null, {
       status: 204,
-      headers: CORS_HEADERS,
+      headers: PREFLIGHT_CORS_HEADERS,
     });
   }),
 });
@@ -606,6 +769,8 @@ http.route({
   path: "/api/seed-demo",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("Origin") || "*";
+
     try {
       const body = (await request.json()) as {
         projectId: string;
@@ -613,7 +778,7 @@ http.route({
       };
 
       if (!body.projectId || !body.pageUrl) {
-        return corsErrorResponse("Missing projectId or pageUrl");
+        return corsErrorResponse("Missing projectId or pageUrl", origin);
       }
 
       const result = await ctx.runMutation(internal.seed.seedDemoData, {
@@ -621,12 +786,12 @@ http.route({
         pageUrl: body.pageUrl,
       });
 
-      return corsResponse(result);
+      return corsResponse(result, origin);
     } catch (error) {
       console.error("Error seeding demo data:", error);
       const message =
         error instanceof Error ? error.message : "Internal server error";
-      return corsErrorResponse(message, 500);
+      return corsErrorResponse(message, origin, 500);
     }
   }),
 });
@@ -637,7 +802,7 @@ http.route({
   handler: httpAction(async () => {
     return new Response(null, {
       status: 204,
-      headers: CORS_HEADERS,
+      headers: PREFLIGHT_CORS_HEADERS,
     });
   }),
 });
@@ -649,12 +814,13 @@ http.route({
 http.route({
   path: "/api/health",
   method: "GET",
-  handler: httpAction(async () => {
+  handler: httpAction(async (_, request) => {
+    const origin = request.headers.get("Origin") || "*";
     return corsResponse({
       status: "ok",
       timestamp: Date.now(),
       version: "1.0.0",
-    });
+    }, origin);
   }),
 });
 

@@ -592,6 +592,7 @@ export const bulkUpdateStatus = mutation({
 // INTERNAL MUTATIONS (Called from HTTP endpoint - no auth)
 // =============================================================================
 
+
 /** Create feedback from widget (internal - called by HTTP action) */
 export const createFromWidget = internalMutation({
   args: {
@@ -919,6 +920,43 @@ export const getRepliesForReplay = internalQuery({
       content: r.content,
       createdAt: r.createdAt,
     }));
+  },
+});
+
+/** Get project origin data for CORS validation (internal - called by HTTP actions) */
+export const getProjectOriginData = internalQuery({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return null;
+
+    return {
+      isActive: project.isActive !== false,
+      url: project.url,
+      allowedDomains: project.allowedDomains,
+    };
+  },
+});
+
+/** Get project origin data from a feedbackId (internal - for replay endpoint CORS) */
+export const getProjectOriginDataByFeedback = internalQuery({
+  args: {
+    feedbackId: v.id("feedbacks"),
+  },
+  handler: async (ctx, args) => {
+    const feedback = await ctx.db.get(args.feedbackId);
+    if (!feedback) return null;
+
+    const project = await ctx.db.get(feedback.projectId);
+    if (!project) return null;
+
+    return {
+      isActive: project.isActive !== false,
+      url: project.url,
+      allowedDomains: project.allowedDomains,
+    };
   },
 });
 
