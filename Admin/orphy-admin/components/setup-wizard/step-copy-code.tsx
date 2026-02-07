@@ -12,6 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const WIDGET_URL =
+  process.env.NEXT_PUBLIC_WIDGET_URL || "https://widget.orphy.app/v1/orphy.js";
+
 interface StepCopyCodeProps {
   projectId: string;
   apiUrl: string;
@@ -33,7 +36,7 @@ export function StepCopyCode({
 <script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://widget.orphy.app/orphy.js';
+    script.src = '${WIDGET_URL}';
     script.async = true;
     script.onload = function() {
       Orphy.init({

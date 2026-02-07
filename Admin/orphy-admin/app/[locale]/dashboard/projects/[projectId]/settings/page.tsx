@@ -10,6 +10,9 @@ import { ArrowLeft, Copy, Check, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/contexts/workspace-context";
+
+const WIDGET_URL =
+  process.env.NEXT_PUBLIC_WIDGET_URL || "https://widget.orphy.app/v1/orphy.js";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -74,7 +77,7 @@ export default function ProjectSettingsPage({
 <script>
   (function() {
     var script = document.createElement('script');
-    script.src = 'https://widget.orphy.app/orphy.js';
+    script.src = '${WIDGET_URL}';
     script.async = true;
     script.onload = function() {
       Orphy.init({
