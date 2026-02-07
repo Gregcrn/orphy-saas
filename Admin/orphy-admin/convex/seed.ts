@@ -15,7 +15,6 @@ interface DemoFeedback {
   boundingBox: { top: number; left: number; width: number; height: number };
   positionInElement: { x: number; y: number };
   positionInViewport: { x: number; y: number };
-  resolutionNote?: string;
   replies: {
     authorType: "client" | "agency";
     authorName: string;
@@ -34,7 +33,7 @@ const DEMO_FEEDBACKS: DemoFeedback[] = [
     boundingBox: { top: 370, left: 430, width: 240, height: 52 },
     positionInElement: { x: 120, y: 26 },
     positionInViewport: { x: 550, y: 396 },
-    resolutionNote: "Lien href corrigé, pointait vers '#' au lieu de /contact",
+
     replies: [
       {
         authorType: "agency",
@@ -78,7 +77,7 @@ const DEMO_FEEDBACKS: DemoFeedback[] = [
     boundingBox: { top: 1800, left: 420, width: 360, height: 500 },
     positionInElement: { x: 180, y: 120 },
     positionInViewport: { x: 600, y: 400 },
-    resolutionNote: "Prix mis à jour à 890€/mois",
+
     replies: [
       {
         authorType: "agency",
@@ -110,7 +109,7 @@ const DEMO_FEEDBACKS: DemoFeedback[] = [
     boundingBox: { top: 1100, left: 40, width: 380, height: 220 },
     positionInElement: { x: 190, y: 110 },
     positionInViewport: { x: 230, y: 450 },
-    resolutionNote: "Gap augmenté de 24px à 32px",
+
     replies: [
       {
         authorType: "agency",
@@ -185,11 +184,8 @@ export const seedDemoData = internalMutation({
         status: demo.status,
         priority: "medium",
         authorType: "client",
-        ...(demo.resolutionNote
-          ? {
-              resolutionNote: demo.resolutionNote,
-              resolvedAt: createdAt + 1800000,
-            }
+        ...(demo.status === "treated" || demo.status === "validated"
+          ? { resolvedAt: createdAt + 1800000 }
           : {}),
         ...(demo.status === "validated"
           ? { validatedAt: createdAt + 3600000 }

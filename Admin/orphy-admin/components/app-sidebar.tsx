@@ -6,7 +6,6 @@ import { useUser } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import {
-  Inbox,
   LayoutDashboard,
   FolderKanban,
   Settings,
@@ -39,9 +38,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Fetch projects from Convex
   const allProjects = useQuery(api.projects.list);
 
-  // Fetch open feedback count for notification badge
-  const openFeedbackCount = useQuery(
-    api.feedbacks.countOpenByWorkspace,
+  // Fetch open feedback counts per project for badges
+  const openCounts = useQuery(
+    api.feedbacks.countOpenByProject,
     currentWorkspace?._id ? { workspaceId: currentWorkspace._id } : "skip"
   );
 
@@ -57,13 +56,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       url: `/${locale}/dashboard`,
       icon: LayoutDashboard,
       isActive: pathname === `/${locale}/dashboard`,
-    },
-    {
-      title: t("sidebar.inbox"),
-      url: `/${locale}/dashboard/inbox`,
-      icon: Inbox,
-      isActive: pathname === `/${locale}/dashboard/inbox`,
-      badge: openFeedbackCount ?? undefined,
     },
     {
       title: t("sidebar.projects"),
@@ -86,6 +78,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       name: project.name,
       url: `/${locale}/dashboard/projects/${project._id}`,
       icon: MessageSquare,
+      badge: openCounts?.[project._id],
     })) ?? [];
 
   // User data for NavUser

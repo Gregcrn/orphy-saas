@@ -393,7 +393,7 @@ http.route({
       }
 
       // Parse body
-      const body = await request.json() as { status: string; resolutionNote?: string };
+      const body = await request.json() as { status: string };
 
       const validStatuses = ["open", "treated", "validated", "resolved"]; // Keep "resolved" for backwards compat
       if (!body.status || !validStatuses.includes(body.status)) {
@@ -405,7 +405,6 @@ http.route({
         // Agency marks as treated (resolved is alias for treated for backwards compat)
         await ctx.runMutation(internal.feedbacks.resolveFromWidget, {
           feedbackId: feedbackId as Id<"feedbacks">,
-          resolutionNote: body.resolutionNote,
         });
       } else if (body.status === "validated") {
         // Client validates (requires status to be "treated")

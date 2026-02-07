@@ -137,7 +137,7 @@ export default function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{t("dashboard.recentFeedbacks")}</CardTitle>
           <Link
-            href={`/${locale}/dashboard/inbox`}
+            href={`/${locale}/dashboard/projects`}
             className="text-sm text-muted-foreground hover:underline"
           >
             {t("dashboard.viewAll")}

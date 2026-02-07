@@ -297,7 +297,7 @@ export default defineSchema({
     // -------------------------------------------------------------------------
     // Treatment (when status = "treated" - agency marks as done)
     // -------------------------------------------------------------------------
-    /** Note explaining what was done */
+    /** @deprecated No longer used — conversation feed replaces treatment notes */
     resolutionNote: v.optional(v.string()),
     /** Who marked as treated */
     resolvedBy: v.optional(v.id("users")),

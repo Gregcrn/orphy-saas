@@ -324,14 +324,14 @@ export const listAssignedToMe = query({
   },
 });
 
-/** Count open feedbacks for a workspace (for notification badge) */
-export const countOpenByWorkspace = query({
+/** Count open feedbacks per project for a workspace (for sidebar badges) */
+export const countOpenByProject = query({
   args: {
     workspaceId: v.id("workspaces"),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return 0;
+    if (!user) return {};
 
     // Verify user has access to this workspace
     const membership = await ctx.db
@@ -341,7 +341,7 @@ export const countOpenByWorkspace = query({
       )
       .first();
 
-    if (!membership) return 0;
+    if (!membership) return {};
 
     // Get all projects in this workspace
     const projects = await ctx.db
@@ -349,8 +349,8 @@ export const countOpenByWorkspace = query({
       .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
-    // Count open feedbacks across all projects
-    let openCount = 0;
+    // Count open feedbacks per project
+    const counts: Record<string, number> = {};
     for (const project of projects) {
       const openFeedbacks = await ctx.db
         .query("feedbacks")
@@ -358,10 +358,12 @@ export const countOpenByWorkspace = query({
           q.eq("projectId", project._id).eq("status", "open")
         )
         .collect();
-      openCount += openFeedbacks.length;
+      if (openFeedbacks.length > 0) {
+        counts[project._id] = openFeedbacks.length;
+      }
     }
 
-    return openCount;
+    return counts;
   },
 });
 
@@ -430,7 +432,7 @@ export const getProjectStats = query({
 // MUTATIONS (Authenticated - Dashboard)
 // =============================================================================
 
-/** Update feedback status */
+/** Update feedback status with proper metadata handling */
 export const updateStatus = mutation({
   args: {
     feedbackId: v.id("feedbacks"),
@@ -446,98 +448,30 @@ export const updateStatus = mutation({
     const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
     if (!hasAccess) throw new Error("Not authorized");
 
-    await ctx.db.patch(args.feedbackId, {
-      status: args.status,
-      updatedAt: Date.now(),
-    });
-
-    return args.feedbackId;
-  },
-});
-
-/** Mark feedback as treated (agency has addressed it) with optional note */
-export const markAsTreated = mutation({
-  args: {
-    feedbackId: v.id("feedbacks"),
-    resolutionNote: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not authenticated");
-
-    const feedback = await ctx.db.get(args.feedbackId);
-    if (!feedback) throw new Error("Feedback not found");
-
-    const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
-    if (!hasAccess) throw new Error("Not authorized");
-
     const now = Date.now();
 
-    await ctx.db.patch(args.feedbackId, {
-      status: "treated",
-      resolutionNote: args.resolutionNote?.trim() || undefined,
-      resolvedBy: user._id,
-      resolvedAt: now,
-      updatedAt: now,
-    });
-
-    return args.feedbackId;
-  },
-});
-
-/** @deprecated Use markAsTreated instead - kept for backwards compatibility */
-export const resolve = mutation({
-  args: {
-    feedbackId: v.id("feedbacks"),
-    resolutionNote: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not authenticated");
-
-    const feedback = await ctx.db.get(args.feedbackId);
-    if (!feedback) throw new Error("Feedback not found");
-
-    const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
-    if (!hasAccess) throw new Error("Not authorized");
-
-    const now = Date.now();
-
-    await ctx.db.patch(args.feedbackId, {
-      status: "treated",
-      resolutionNote: args.resolutionNote?.trim() || undefined,
-      resolvedBy: user._id,
-      resolvedAt: now,
-      updatedAt: now,
-    });
-
-    return args.feedbackId;
-  },
-});
-
-/** Reopen a treated/validated feedback (clears all status data) */
-export const reopen = mutation({
-  args: {
-    feedbackId: v.id("feedbacks"),
-  },
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) throw new Error("Not authenticated");
-
-    const feedback = await ctx.db.get(args.feedbackId);
-    if (!feedback) throw new Error("Feedback not found");
-
-    const hasAccess = await hasProjectAccess(ctx, feedback.projectId, user._id);
-    if (!hasAccess) throw new Error("Not authorized");
-
-    await ctx.db.patch(args.feedbackId, {
-      status: "open",
-      resolutionNote: undefined,
-      resolvedBy: undefined,
-      resolvedAt: undefined,
-      validatedAt: undefined,
-      updatedAt: Date.now(),
-    });
+    if (args.status === "open") {
+      await ctx.db.patch(args.feedbackId, {
+        status: "open",
+        resolvedBy: undefined,
+        resolvedAt: undefined,
+        validatedAt: undefined,
+        updatedAt: now,
+      });
+    } else if (args.status === "treated") {
+      await ctx.db.patch(args.feedbackId, {
+        status: "treated",
+        resolvedBy: user._id,
+        resolvedAt: now,
+        updatedAt: now,
+      });
+    } else if (args.status === "validated") {
+      await ctx.db.patch(args.feedbackId, {
+        status: "validated",
+        validatedAt: now,
+        updatedAt: now,
+      });
+    }
 
     return args.feedbackId;
   },
@@ -770,11 +704,10 @@ export const updateStatusFromWidget = internalMutation({
   },
 });
 
-/** Mark feedback as treated from widget with optional note (internal - called by HTTP action) */
+/** Mark feedback as treated from widget (internal - called by HTTP action) */
 export const resolveFromWidget = internalMutation({
   args: {
     feedbackId: v.id("feedbacks"),
-    resolutionNote: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const feedback = await ctx.db.get(args.feedbackId);
@@ -786,10 +719,8 @@ export const resolveFromWidget = internalMutation({
 
     await ctx.db.patch(args.feedbackId, {
       status: "treated",
-      resolutionNote: args.resolutionNote?.trim() || undefined,
       resolvedAt: now,
       updatedAt: now,
-      // Note: no resolvedBy since widget has no authenticated user
     });
 
     return args.feedbackId;

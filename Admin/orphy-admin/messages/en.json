@@ -147,6 +147,16 @@
       "allBrowsers": "All",
       "allProjects": "All",
       "otherBrowser": "Other"
+    },
+    "replies": {
+      "title": "Conversation",
+      "empty": "No replies yet",
+      "placeholder": "Write a reply...",
+      "send": "Send",
+      "sending": "Sending...",
+      "client": "Client",
+      "agency": "Agency",
+      "you": "You"
     }
   },
   "sidebar": {

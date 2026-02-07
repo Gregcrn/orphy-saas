@@ -1,8 +1,8 @@
-# Web Feedback Widget
+# Orphy - Web Feedback Widget
 
 ## Overview
 
-This project is a **lightweight web feedback widget** designed for digital agencies.
+Orphy is a **lightweight web feedback widget** designed for digital agencies.
 
 It allows clients to give **clear, contextual feedback directly on a live website**, without:
 - screenshots
@@ -12,9 +12,9 @@ It allows clients to give **clear, contextual feedback directly on a live websit
 The core idea is simple:
 > **Click on the website → write feedback → the agency understands immediately.**
 
-No CRM.  
-No project management.  
-No email replacement.  
+No CRM.
+No project management.
+No email replacement.
 Just **web feedback done right**.
 
 ---
@@ -25,7 +25,7 @@ In most agencies today:
 - Clients take screenshots
 - Paste them into emails
 - Write comments without precise context
-- Mix feedback with other requests (calls, deadlines, questions)
+- Mix feedback with other requests
 
 This leads to:
 - lost context
@@ -37,7 +37,7 @@ Email is not designed for **visual, contextual feedback on websites**.
 
 ---
 
-## Product Scope (Strict)
+## Product Scope
 
 This project focuses **only** on:
 - website feedback during pre-production or review phases
@@ -47,128 +47,261 @@ It explicitly does **not** handle:
 - task management
 - billing
 - timelines
-- team management
 
 This is a **single job-to-be-done product**.
 
 ---
 
-## How It Works (High Level)
+## Current Features
 
-1. An agency generates a **review link**
-2. The client opens the website in **review mode**
-3. The client:
-   - clicks on any element
-   - writes a comment
-4. The agency receives:
-   - the comment
-   - the exact page
-   - the element location
-   - viewport information
+### Widget (Client-Facing)
 
-The goal is that **a developer can fix the issue without asking a follow-up question**.
+| Feature | Status |
+|---------|--------|
+| Click on any element to leave feedback | ✅ |
+| Precise element positioning (bounding box, viewport) | ✅ |
+| Smart CSS selector generation | ✅ |
+| Visual highlight on hover/selection | ✅ |
+| Comment box with keyboard shortcuts (Esc, Ctrl+Enter) | ✅ |
+| Feedback types: Bug, Design, Content, Question | ✅ |
+| Review mode: see all existing feedbacks | ✅ |
+| Threads panel: view conversation history | ✅ |
+| Reply to agency messages | ✅ |
+| Validate treated feedbacks | ✅ |
+| Device/browser detection | ✅ |
+| Localization (FR, EN) | ✅ |
+| Toggle toolbar | ✅ |
 
----
+### Admin Dashboard (Agency-Facing)
 
-## Architecture Overview
+| Feature | Status |
+|---------|--------|
+| Authentication (Clerk) | ✅ |
+| Workspace/team management | ✅ |
+| Team invitations via email | ✅ |
+| Multiple projects per workspace | ✅ |
+| Feedbacks inbox with filters | ✅ |
+| Two-step workflow: Open → Treated → Validated | ✅ |
+| Assignee management | ✅ |
+| Priority levels (Low, Medium, High) | ✅ |
+| Threads/replies to clients | ✅ |
+| Resolution notes | ✅ |
+| Notification badge for open feedbacks | ✅ |
+| Email notifications (hourly batch) | ✅ |
+| Device/browser info display | ✅ |
+| Multi-language (FR, EN) | ✅ |
 
-The system is intentionally split into three independent parts:
+### Notifications
 
-### 1. Widget (Core Value)
-- Standalone JavaScript widget
-- Injected on top of any website
-- No framework (DOM API only)
-- Handles:
-  - click capture
-  - element highlighting
-  - comment UI
-  - data serialization
-
-This is the heart of the product.
-
-### 2. Application (Next.js)
-- Dashboard for agencies
-- Review link generation
-- Feedback listing & status tracking
-- API routes
-
-### 3. Backend
-- Simple REST API
-- Stores feedback data
-- No real-time or heavy logic in MVP
-
----
-
-## Widget Design Principles
-
-- **Overlay only** (never modify the underlying website)
-- **Non-intrusive** (scrolling and navigation must work normally)
-- **Context over precision**
-- **Graceful degradation** over perfect DOM targeting
-- **Zero configuration** for the client
+| Feature | Status |
+|---------|--------|
+| Email: New feedback → Agency (hourly batch) | ✅ |
+| Email: Workspace invitation | ✅ |
+| In-app: Badge for open feedbacks | ✅ |
+| Email: Feedback treated → Client | ❌ Planned |
 
 ---
 
-## Folder Structure (Widget)
+## Architecture
 
-src/
-├── core/
-│ ├── capture.ts # Click & position capture
-│ ├── highlight.ts # Visual highlight logic
-│ ├── overlay.ts # Overlay layer management
-│ └── state.ts # Local widget state
-├── ui/
-│ ├── comment-box.ts # Feedback input UI
-│ └── toolbar.ts # Review mode controls
-├── utils/
-│ ├── dom.ts # DOM helpers
-│ ├── selectors.ts # Element selector utilities
-│ └── viewport.ts # Viewport detection
-├── styles/
-│ ├── overlay.css
-│ └── comment-box.css
-└── index.ts # Widget entry point
-
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         CLIENT SITE                          │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │                    Orphy Widget                          │ │
+│  │  • Overlay layer (z-index: 999998)                      │ │
+│  │  • Highlight box (z-index: 999997)                      │ │
+│  │  • Comment box / Threads panel (z-index: 999999)        │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTP API
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      CONVEX BACKEND                          │
+│  • Feedbacks CRUD                                           │
+│  • Replies/Threads                                          │
+│  • Projects & Workspaces                                    │
+│  • User management                                          │
+│  • Cron jobs (email notifications)                          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ Realtime sync
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    ADMIN DASHBOARD                           │
+│  • Next.js 15 + React 19                                    │
+│  • Clerk authentication                                     │
+│  • shadcn/ui components                                     │
+│  • Tailwind CSS v4                                          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ Transactional emails
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        RESEND                                │
+│  • New feedback notifications                               │
+│  • Workspace invitations                                    │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Technical Choices (MVP)
+## Tech Stack
 
-- **TypeScript**
-- **Vite** (library mode, IIFE output)
-- **pnpm**
-- **No framework inside the widget**
-- **No WebSockets**
-- **No WASM / Rust**
-- **No over-engineering**
+### Widget
+- **Language**: TypeScript (strict mode)
+- **Bundler**: Vite (IIFE output)
+- **Package manager**: pnpm
+- **Size**: ~15KB minified
+- **Dependencies**: Zero runtime dependencies
 
-The priority is **time-to-feedback**, not technical novelty.
+### Admin Dashboard
+- **Framework**: Next.js 15 (App Router)
+- **UI**: React 19 + shadcn/ui + Tailwind CSS v4
+- **Database**: Convex (realtime)
+- **Auth**: Clerk
+- **Emails**: Resend
+- **Package manager**: Bun
+- **Hosting**: Vercel (planned)
 
 ---
 
-## Non-Goals (Important)
+## Folder Structure
 
-This project does NOT aim to:
-- be a Figma competitor
-- handle full collaboration workflows
-- support complex annotations or design tools
-- replace existing PM tools
+```
+Reviewly/
+├── Widget/
+│   └── Orphy/
+│       ├── src/
+│       │   ├── core/
+│       │   │   ├── state.ts        # Pub/sub store
+│       │   │   ├── overlay.ts      # Click capture layer
+│       │   │   ├── highlight.ts    # Visual highlight
+│       │   │   └── capture.ts      # Element position capture
+│       │   ├── ui/
+│       │   │   ├── toolbar.ts      # Toggle button
+│       │   │   ├── comment-box.ts  # Feedback input
+│       │   │   └── threads-panel.ts # Review mode panel
+│       │   ├── utils/
+│       │   │   ├── selectors.ts    # CSS selector generation
+│       │   │   ├── dom.ts          # DOM helpers
+│       │   │   └── viewport.ts     # Viewport detection
+│       │   ├── i18n/               # Translations (fr, en)
+│       │   └── index.ts            # Entry point
+│       ├── dist/                   # Built widget
+│       └── test.html               # Manual testing
+│
+├── Admin/
+│   └── orphy-admin/
+│       ├── app/                    # Next.js App Router
+│       │   └── [locale]/
+│       │       ├── dashboard/      # Protected routes
+│       │       └── (auth)/         # Auth routes
+│       ├── components/             # React components
+│       ├── convex/                 # Convex functions
+│       │   ├── feedbacks.ts
+│       │   ├── projects.ts
+│       │   ├── workspaces.ts
+│       │   ├── invitations.ts
+│       │   ├── notifications.ts
+│       │   └── crons.ts
+│       └── contexts/               # React contexts
+│
+└── docs/                           # Documentation
+```
 
-It is intentionally narrow.
+---
+
+## Feedback Workflow
+
+```
+┌──────────┐     ┌──────────┐     ┌────────────┐
+│   OPEN   │ ──► │ TREATED  │ ──► │ VALIDATED  │
+└──────────┘     └──────────┘     └────────────┘
+     │                │                  │
+     │                │                  │
+  Client           Agency            Client
+  creates          resolves         confirms
+  feedback         issue            it's done
+```
+
+1. **Open**: Client leaves feedback via widget
+2. **Treated**: Agency marks as treated (with optional note)
+3. **Validated**: Client confirms the fix via widget
+
+---
+
+## Widget Integration
+
+```html
+<script src="https://orphy.app/widget/orphy.js"></script>
+<script>
+  Orphy.init({
+    projectId: 'your-project-id',
+    locale: 'fr' // or 'en'
+  });
+</script>
+```
+
+### Public API
+
+```typescript
+Orphy.init(options)    // Initialize widget
+Orphy.toggle()         // Toggle review mode
+Orphy.isActive()       // Check if active
+Orphy.getFeedbacks()   // Get current feedbacks
+Orphy.destroy()        // Remove widget
+```
+
+---
+
+## Design Principles
+
+1. **Overlay only**: Never modify the underlying website DOM
+2. **Non-intrusive**: Scrolling and navigation work normally
+3. **Context over precision**: Capture enough context, not perfect selectors
+4. **Graceful degradation**: Work even when selectors fail
+5. **Zero configuration**: Clients don't need to configure anything
 
 ---
 
 ## Guiding Principle
 
-> If a developer can understand and fix a feedback item  
-> **without asking a single clarification question**,  
+> If a developer can understand and fix a feedback item
+> **without asking a single clarification question**,
 > the product succeeds.
 
 Everything else is secondary.
 
 ---
 
+## Roadmap
+
+### Done
+- [x] Core widget with click capture
+- [x] Admin dashboard with authentication
+- [x] Workspace/team management
+- [x] Two-step validation workflow
+- [x] Email notifications (new feedback)
+- [x] Threads/replies
+- [x] Notification badge
+
+### Planned
+- [ ] Production deployment (Vercel)
+- [ ] Email: Notify client when feedback treated
+- [ ] Widget color customization
+- [ ] Export CSV
+
+### Maybe Later
+- [ ] Screenshot capture (optional)
+- [ ] Slack integration
+- [ ] Analytics dashboard
+
+---
+
 ## Status
 
-Early MVP.  
-Focus: validate real agency usage before expanding scope.
+**MVP Complete** - Ready for pilot testing with agencies.
+
+Current focus: Distribution and user feedback.

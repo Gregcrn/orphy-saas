@@ -1,35 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import {
-  Folder,
-  MoreHorizontal,
-  Plus,
-  Settings,
-  Trash2,
-  type LucideIcon,
-} from "lucide-react";
+import { Plus, type LucideIcon } from "lucide-react";
 
-import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 
 export function NavProjects({
@@ -41,19 +24,12 @@ export function NavProjects({
     name: string;
     url: string;
     icon: LucideIcon;
+    badge?: number;
   }[];
   locale: string;
 }) {
-  const { isMobile } = useSidebar();
   const t = useTranslations();
   const router = useRouter();
-  const deleteProject = useMutation(api.projects.remove);
-
-  const handleDelete = async (projectId: Id<"projects">) => {
-    if (confirm(t("projects.deleteConfirm"))) {
-      await deleteProject({ projectId });
-    }
-  };
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -67,40 +43,11 @@ export function NavProjects({
                 <span>{item.name}</span>
               </Link>
             </SidebarMenuButton>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuAction showOnHover>
-                  <MoreHorizontal />
-                  <span className="sr-only">{t("common.actions")}</span>
-                </SidebarMenuAction>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-48 rounded-lg"
-                side={isMobile ? "bottom" : "right"}
-                align={isMobile ? "end" : "start"}
-              >
-                <DropdownMenuItem asChild>
-                  <Link href={item.url}>
-                    <Folder className="text-muted-foreground" />
-                    <span>{t("projects.viewProject")}</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`${item.url}/settings`}>
-                    <Settings className="text-muted-foreground" />
-                    <span>{t("projects.settings")}</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleDelete(item.id)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="text-destructive" />
-                  <span>{t("projects.delete")}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {item.badge !== undefined && item.badge > 0 && (
+              <SidebarMenuBadge className="bg-red-500 text-white hover:text-white peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white">
+                {item.badge > 99 ? "99+" : item.badge}
+              </SidebarMenuBadge>
+            )}
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>

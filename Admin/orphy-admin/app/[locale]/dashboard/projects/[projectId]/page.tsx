@@ -35,11 +35,10 @@ import {
 } from "@icons-pack/react-simple-icons";
 
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -70,7 +69,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssigneeSelect } from "@/components/feedback/assignee-select";
-import { ResolveDialog } from "@/components/feedback/resolve-dialog";
+import { FeedbackDetailSheet } from "@/components/feedback/feedback-detail-sheet";
 import {
   FeedbackFilters,
   FeedbackFiltersState,
@@ -98,11 +97,7 @@ export default function ProjectDetailPage({
     device: "all",
     browser: "all",
   });
-  const [resolvingFeedback, setResolvingFeedback] = useState<{
-    id: Id<"feedbacks">;
-    comment: string;
-    resolutionNote?: string;
-  } | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<Doc<"feedbacks"> | null>(null);
 
   const project = useQuery(api.projects.get, {
     projectId: projectId as Id<"projects">,
@@ -123,7 +118,7 @@ export default function ProjectDetailPage({
     return applyFeedbackFilters(feedbacksRaw, filters, currentUser?._id);
   }, [feedbacksRaw, filters, currentUser?._id]);
 
-  const reopen = useMutation(api.feedbacks.reopen);
+  const updateStatus = useMutation(api.feedbacks.updateStatus);
   const updatePriority = useMutation(api.feedbacks.updatePriority);
   const deleteFeedback = useMutation(api.feedbacks.remove);
 
@@ -184,6 +179,20 @@ export default function ProjectDetailPage({
     }
   };
 
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case "open":
+        return "text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400";
+      case "treated":
+      case "resolved":
+        return "text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400";
+      case "validated":
+        return "text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400";
+      default:
+        return "text-muted-foreground bg-muted";
+    }
+  };
+
   const handleReplay = (feedback: { pageUrl: string; _id: string }) => {
     // Open the page with replay parameter
     const url = new URL(feedback.pageUrl);
@@ -200,14 +209,11 @@ export default function ProjectDetailPage({
     }
   };
 
-  const handleToggleStatus = (
+  const handleChangeStatus = (
     feedbackId: Id<"feedbacks">,
-    currentStatus: "open" | "treated" | "validated" | "resolved",
-    comment: string,
-    resolutionNote?: string
+    status: "open" | "treated" | "validated" | "resolved",
   ) => {
-    // Always open dialog - for treating or editing existing note
-    setResolvingFeedback({ id: feedbackId, comment, resolutionNote });
+    updateStatus({ feedbackId, status });
   };
 
   const handleChangePriority = async (
@@ -386,22 +392,22 @@ export default function ProjectDetailPage({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table className="table-fixed w-full">
+                <Table className="w-full">
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[40px]"></TableHead>
-                      <TableHead className="w-[25%]">{t("feedbacks.comment")}</TableHead>
-                      <TableHead className="w-[12%]">{t("feedbacks.page")}</TableHead>
-                      <TableHead className="w-[12%]">{t("feedbacks.device")}</TableHead>
-                      <TableHead className="w-[10%]">Status</TableHead>
-                      <TableHead className="w-[12%]">{t("feedbacks.priority.label")}</TableHead>
-                      <TableHead className="w-[12%]">{t("feedbacks.assignee")}</TableHead>
-                      <TableHead className="w-[10%]"></TableHead>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead>{t("feedbacks.comment")}</TableHead>
+                      <TableHead>{t("feedbacks.page")}</TableHead>
+                      <TableHead>{t("feedbacks.device")}</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>{t("feedbacks.priority.label")}</TableHead>
+                      <TableHead>{t("feedbacks.assignee")}</TableHead>
+                      <TableHead className="w-24"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {feedbacks?.map((feedback) => (
-                      <TableRow key={feedback._id} className="group">
+                      <TableRow key={feedback._id} className="group cursor-pointer select-none" onClick={() => setSelectedFeedback(feedback)}>
                         {/* Type Icon */}
                         <TableCell className="py-3 pr-0">
                           <Tooltip>
@@ -418,8 +424,10 @@ export default function ProjectDetailPage({
 
                         {/* Comment */}
                         <TableCell className="py-3">
-                          <p className="font-medium line-clamp-1">
-                            {feedback.comment}
+                          <p className="font-medium">
+                            {feedback.comment.length > 50
+                              ? `${feedback.comment.slice(0, 50)}…`
+                              : feedback.comment}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(feedback.createdAt).toLocaleDateString(locale)}
@@ -427,14 +435,14 @@ export default function ProjectDetailPage({
                         </TableCell>
 
                         {/* Page */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <a
                                 href={feedback.pageUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors max-w-[90px]"
+                                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                               >
                                 <span className="truncate">
                                   {formatPagePath(feedback.pageUrl)}
@@ -452,7 +460,7 @@ export default function ProjectDetailPage({
                         </TableCell>
 
                         {/* Device/Browser */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 whitespace-nowrap">
                           {feedback.deviceInfo ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -480,43 +488,29 @@ export default function ProjectDetailPage({
                         </TableCell>
 
                         {/* Status */}
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-1.5">
-                            <Badge
-                              variant={
-                                feedback.status === "open"
-                                  ? "default"
-                                  : feedback.status === "treated" || feedback.status === "resolved"
-                                  ? "outline"
-                                  : "secondary"
-                              }
-                              className={`cursor-pointer text-xs ${
-                                feedback.status === "treated" || feedback.status === "resolved"
-                                  ? "border-blue-500 text-blue-600 bg-blue-50"
-                                  : feedback.status === "validated"
-                                  ? "bg-green-100 text-green-700"
-                                  : ""
-                              }`}
-                              onClick={() => handleToggleStatus(feedback._id, feedback.status as "open" | "treated" | "validated" | "resolved", feedback.comment, feedback.resolutionNote)}
-                            >
-                              {t(`feedbacks.status.${feedback.status === "resolved" ? "treated" : feedback.status}`)}
-                            </Badge>
-                            {feedback.resolutionNote && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <MessageSquare className="h-3 w-3 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-[300px]">
-                                  <p className="text-xs font-medium mb-1">{t("feedbacks.resolution.noteLabel")}</p>
-                                  <p className="text-xs">{feedback.resolutionNote}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
+                        <TableCell className="py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={feedback.status === "resolved" ? "treated" : feedback.status}
+                            onValueChange={(v) =>
+                              handleChangeStatus(
+                                feedback._id,
+                                v as "open" | "treated" | "validated"
+                              )
+                            }
+                          >
+                            <SelectTrigger className={`w-full h-7 text-xs border-0 ${getStatusStyle(feedback.status)}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="open">{t("feedbacks.status.open")}</SelectItem>
+                              <SelectItem value="treated">{t("feedbacks.status.treated")}</SelectItem>
+                              <SelectItem value="validated">{t("feedbacks.status.validated")}</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
 
                         {/* Priority */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={feedback.priority}
                             onValueChange={(v) =>
@@ -538,7 +532,7 @@ export default function ProjectDetailPage({
                         </TableCell>
 
                         {/* Assignee */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {project.workspaceId && (
                             <AssigneeSelect
                               feedbackId={feedback._id}
@@ -549,7 +543,7 @@ export default function ProjectDetailPage({
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -579,19 +573,6 @@ export default function ProjectDetailPage({
                                   <Play className="mr-2 h-4 w-4" />
                                   {t("feedbacks.replay")}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    if (feedback.status === "open") {
-                                      handleToggleStatus(feedback._id, feedback.status as "open" | "treated" | "validated" | "resolved", feedback.comment, feedback.resolutionNote);
-                                    } else {
-                                      reopen({ feedbackId: feedback._id });
-                                    }
-                                  }}
-                                >
-                                  {feedback.status === "open"
-                                    ? t("feedbacks.markTreated")
-                                    : t("feedbacks.markOpen")}
-                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => handleDelete(feedback._id)}
@@ -613,16 +594,11 @@ export default function ProjectDetailPage({
           </CardContent>
         </Card>
 
-        {/* Resolve Dialog */}
-        {resolvingFeedback && (
-          <ResolveDialog
-            feedbackId={resolvingFeedback.id}
-            feedbackComment={resolvingFeedback.comment}
-            initialNote={resolvingFeedback.resolutionNote}
-            open={true}
-            onOpenChange={(open) => !open && setResolvingFeedback(null)}
-          />
-        )}
+        {/* Feedback Detail Sheet */}
+        <FeedbackDetailSheet
+          feedback={selectedFeedback}
+          onOpenChange={(open) => !open && setSelectedFeedback(null)}
+        />
       </div>
     </TooltipProvider>
   );
