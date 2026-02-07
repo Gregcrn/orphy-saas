@@ -1,0 +1,23 @@
+{
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/v1/orphy.js", "destination": "/orphy.js" },
+    { "source": "/v1/orphy.js.map", "destination": "/orphy.js.map" }
+  ]
+}
