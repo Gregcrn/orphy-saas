@@ -72,7 +72,7 @@ export function createMinimizedBar(options: MinimizedBarOptions): MinimizedBarAP
   onExpandCallback = options.onExpand;
   onItemChangeCallback = options.onItemChange ?? null;
 
-  // Build bar
+  // Build bar - two-row layout
   barEl = createElement("div", {
     className: "orphy-minimized-bar",
     styles: {
@@ -80,86 +80,98 @@ export function createMinimizedBar(options: MinimizedBarOptions): MinimizedBarAP
       bottom: spacing.xl,
       left: "50%",
       transform: "translateX(-50%) translateY(20px)",
-      maxWidth: "480px",
-      height: "40px",
+      width: "520px",
+      maxWidth: "calc(100vw - 32px)",
       backgroundColor: colors.bg.primary,
       border: `${borders.width.thin} solid ${colors.border.default}`,
       borderRadius: borders.radius.xl,
       boxShadow: shadows.lg,
       zIndex: zIndex.toolbar,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: spacing.xs,
-      padding: `0 ${spacing.sm}`,
+      display: "flex",
+      flexDirection: "column",
+      padding: `${spacing.md} ${spacing.lg}`,
       fontFamily: typography.family.sans,
       opacity: "0",
       transition: `all ${transitions.duration.slow} ${transitions.easing.out}`,
     },
   });
 
-  // Prev button
-  prevBtnEl = createNavButton(createChevronLeftIcon(), t("minimizedBar.previous"), handlePrev);
+  // === TOP ROW: Badge + Comment ===
 
   // Type badge
   typeBadgeEl = createElement("span", {
     styles: {
       display: "inline-flex",
       alignItems: "center",
-      padding: "2px 8px",
+      padding: "4px 12px",
       borderRadius: borders.radius.full,
-      fontSize: typography.size.xs,
+      fontSize: typography.size.sm,
       fontWeight: typography.weight.medium,
       whiteSpace: "nowrap",
       flexShrink: "0",
     },
   });
 
-  // Comment preview
+  // Comment - now allows 2 lines
   commentEl = createElement("div", {
     styles: {
-      maxWidth: "200px",
+      flex: "1",
       minWidth: "0",
-      fontSize: typography.size.sm,
-      color: colors.text.secondary,
+      fontSize: typography.size.base,
+      lineHeight: typography.lineHeight.base,
+      color: colors.text.primary,
       overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
+      display: "-webkit-box",
+      webkitLineClamp: "2",
+      webkitBoxOrient: "vertical",
     },
   });
 
-  // Counter
-  counterEl = createElement("span", {
+  const topRow = createElement("div", {
     styles: {
-      fontSize: typography.size.xs,
-      color: colors.text.tertiary,
-      whiteSpace: "nowrap",
-      flexShrink: "0",
+      display: "flex",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
     },
+    children: [typeBadgeEl, commentEl],
   });
 
-  // Next button
+  // === BOTTOM ROW: Nav + Counter + Expand ===
+
+  prevBtnEl = createNavButton(createChevronLeftIcon(), t("minimizedBar.previous"), handlePrev);
   nextBtnEl = createNavButton(createChevronRightIcon(), t("minimizedBar.next"), handleNext);
 
-  // Separator
-  const separator = createElement("div", {
+  counterEl = createElement("span", {
     styles: {
-      width: borders.width.thin,
-      height: "24px",
-      backgroundColor: colors.border.default,
-      flexShrink: "0",
+      fontSize: typography.size.sm,
+      color: colors.text.tertiary,
+      whiteSpace: "nowrap",
     },
   });
 
-  // Expand button
+  const navGroup = createElement("div", {
+    styles: {
+      display: "flex",
+      alignItems: "center",
+      gap: spacing.xs,
+    },
+    children: [prevBtnEl, counterEl, nextBtnEl],
+  });
+
   const expandBtn = createNavButton(createChevronUpIcon(), t("minimizedBar.expand"), handleExpand);
 
-  barEl.appendChild(prevBtnEl);
-  barEl.appendChild(typeBadgeEl);
-  barEl.appendChild(commentEl);
-  barEl.appendChild(counterEl);
-  barEl.appendChild(nextBtnEl);
-  barEl.appendChild(separator);
-  barEl.appendChild(expandBtn);
+  const bottomRow = createElement("div", {
+    styles: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    children: [navGroup, expandBtn],
+  });
+
+  barEl.appendChild(topRow);
+  barEl.appendChild(bottomRow);
 
   // Render current item
   renderCurrentItem();
@@ -178,10 +190,13 @@ export function createMinimizedBar(options: MinimizedBarOptions): MinimizedBarAP
     }
   }, 10);
 
-  // Keyboard navigation
+  // Keyboard navigation (on document so it works even without focus)
   keyHandler = (e: KeyboardEvent) => {
     if (!barEl) return;
-    if (e.key === "ArrowLeft") {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      handleExpand();
+    } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       handlePrev();
     } else if (e.key === "ArrowRight") {
@@ -189,7 +204,7 @@ export function createMinimizedBar(options: MinimizedBarOptions): MinimizedBarAP
       handleNext();
     }
   };
-  barEl.addEventListener("keydown", keyHandler);
+  document.addEventListener("keydown", keyHandler);
   barEl.setAttribute("tabindex", "0");
 
   // Mobile responsive
@@ -203,6 +218,11 @@ export function createMinimizedBar(options: MinimizedBarOptions): MinimizedBarAP
 
 export function destroyMinimizedBar(): void {
   if (!barEl) return;
+
+  // Remove document-level keyboard handler
+  if (keyHandler) {
+    document.removeEventListener("keydown", keyHandler);
+  }
 
   // Animate out
   barEl.style.transform = "translateX(-50%) translateY(20px)";
@@ -320,8 +340,8 @@ function applyResponsiveStyles(): void {
 function createNavButton(icon: SVGSVGElement, title: string, onClick: () => void): HTMLButtonElement {
   const btn = createElement("button", {
     styles: {
-      width: "24px",
-      height: "24px",
+      width: "32px",
+      height: "32px",
       border: "none",
       borderRadius: borders.radius.md,
       backgroundColor: "transparent",
@@ -357,7 +377,7 @@ function createNavButton(icon: SVGSVGElement, title: string, onClick: () => void
 // ICONS
 // =============================================================================
 
-function createSvgBase(size: number = 12): SVGSVGElement {
+function createSvgBase(size: number = 16): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", String(size));
   svg.setAttribute("height", String(size));

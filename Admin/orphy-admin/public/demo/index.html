@@ -1025,11 +1025,26 @@
   </footer>
 
   <!-- ORPHY WIDGET + DEMO SEED -->
-  <script src="/demo/orphy.js"></script>
+  <script>
+    // Load widget from CDN in prod, local in dev
+    (function() {
+      var isProd = window.location.hostname === 'app.orphy.app';
+      var src = isProd
+        ? 'https://widget.orphy.app/v1/orphy.js'
+        : '/demo/orphy.js';
+      var s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      document.head.appendChild(s);
+    })();
+  </script>
   <script>
     (async function initDemo() {
+      var isProd = window.location.hostname === 'app.orphy.app';
       var PROJECT_ID = 'jd71snbyqe95fwq81c2eqgrk4x8025kt';
-      var CONVEX_SITE = 'https://decisive-llama-265.convex.site';
+      var CONVEX_SITE = isProd
+        ? 'https://veracious-peacock-288.convex.site'
+        : 'https://decisive-llama-265.convex.site';
       var pageUrl = window.location.href.split('?')[0];
 
       // Seed demo data (no-op if already seeded for this URL)

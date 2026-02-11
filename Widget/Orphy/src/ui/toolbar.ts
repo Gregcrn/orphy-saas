@@ -48,11 +48,11 @@ const BUTTON_BASE: Partial<CSSStyleDeclaration> = {
   display: "flex",
   alignItems: "center",
   gap: spacing.sm,
-  padding: components.button.padding.md,
+  padding: "12px 20px",
   border: `${borders.width.thin} solid ${colors.border.default}`,
-  borderRadius: borders.radius.lg,
+  borderRadius: borders.radius.xl,
   cursor: "pointer",
-  fontSize: typography.size.base,
+  fontSize: typography.size.md,
   fontWeight: typography.weight.medium,
   fontFamily: typography.family.sans,
   boxShadow: shadows.lg,
@@ -290,8 +290,8 @@ function createReviewButton(): HTMLButtonElement {
 
 function createIcon(): HTMLElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", "16");
-  svg.setAttribute("height", "16");
+  svg.setAttribute("width", "20");
+  svg.setAttribute("height", "20");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
@@ -312,8 +312,8 @@ function createIcon(): HTMLElement {
 
 function createReviewIcon(): HTMLElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", "16");
-  svg.setAttribute("height", "16");
+  svg.setAttribute("width", "20");
+  svg.setAttribute("height", "20");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
@@ -368,8 +368,8 @@ function createMessagesButton(): HTMLButtonElement {
 
 function createMessagesIcon(): HTMLElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("width", "16");
-  svg.setAttribute("height", "16");
+  svg.setAttribute("width", "20");
+  svg.setAttribute("height", "20");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
