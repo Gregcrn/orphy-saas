@@ -152,10 +152,13 @@ export function createToolbar(
   // Messages button (for viewing threads)
   messagesButtonEl = createMessagesButton();
 
+  // Powered by link
+  const poweredByEl = createPoweredByLink();
+
   toolbarEl = createElement("div", {
     className: "orphy-toolbar",
     styles: TOOLBAR_STYLES,
-    children: [reviewButtonEl, messagesButtonEl, buttonEl],
+    children: [reviewButtonEl, messagesButtonEl, buttonEl, poweredByEl],
   });
 
   document.body.appendChild(toolbarEl);
@@ -386,6 +389,63 @@ function createMessagesIcon(): HTMLElement {
   svg.appendChild(path1);
 
   return svg as unknown as HTMLElement;
+}
+
+function createPoweredByLink(): HTMLElement {
+  const link = document.createElement("a");
+  link.href = "https://app.orphy.app?ref=widget";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  Object.assign(link.style, {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    padding: "4px 10px",
+    fontSize: typography.size.xs,
+    fontFamily: typography.family.sans,
+    color: colors.text.inverse,
+    backgroundColor: colors.accent.primary,
+    border: `${borders.width.thin} solid ${colors.accent.primary}`,
+    borderRadius: borders.radius.full,
+    textDecoration: "none",
+    transition: `all ${transitions.duration.base} ${transitions.easing.default}`,
+  } satisfies Partial<CSSStyleDeclaration>);
+
+  // Dot icon
+  const dot = createElement("span", {
+    styles: {
+      width: "6px",
+      height: "6px",
+      borderRadius: borders.radius.full,
+      backgroundColor: colors.text.inverse,
+      flexShrink: "0",
+    },
+  });
+
+  const brandName = createElement("span", {
+    styles: { fontWeight: typography.weight.semibold },
+    children: ["Orphy"],
+  });
+
+  link.appendChild(dot);
+  link.appendChild(document.createTextNode("Powered by "));
+  link.appendChild(brandName);
+
+  link.addEventListener("mouseenter", () => {
+    link.style.backgroundColor = colors.accent.soft;
+    link.style.color = colors.accent.primary;
+    link.style.borderColor = "rgba(212, 163, 115, 0.2)";
+    dot.style.backgroundColor = colors.accent.primary;
+  });
+  link.addEventListener("mouseleave", () => {
+    link.style.backgroundColor = colors.accent.primary;
+    link.style.color = colors.text.inverse;
+    link.style.borderColor = colors.accent.primary;
+    dot.style.backgroundColor = colors.text.inverse;
+  });
+
+  return link;
 }
 
 function addHoverEffect(element: HTMLButtonElement, isActive: boolean): void {
