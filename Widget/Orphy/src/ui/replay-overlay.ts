@@ -11,7 +11,6 @@ import type { Feedback, FeedbackType } from "../core/state";
 // STATE
 // ============================================================================
 
-let overlayEl: HTMLDivElement | null = null;
 let highlightEl: HTMLDivElement | null = null;
 let panelEl: HTMLDivElement | null = null;
 let currentElement: HTMLElement | null = null;
@@ -33,6 +32,10 @@ const COLORS = {
   // Status
   statusOpen: "#6b7280",
   statusOpenBg: "#f3f4f6",
+  statusTreated: "#2563eb",
+  statusTreatedBg: "#dbeafe",
+  statusValidated: "#10b981",
+  statusValidatedBg: "#d1fae5",
   statusResolved: "#10b981",
   statusResolvedBg: "#d1fae5",
 
@@ -94,11 +97,6 @@ function injectStyles(): void {
   const style = document.createElement("style");
   style.id = "orphy-replay-styles";
   style.textContent = `
-    @keyframes orphy-highlight-pulse {
-      0%, 100% { box-shadow: 0 0 0 4px ${COLORS.primaryGlow}, 0 0 20px ${COLORS.primaryGlow}; }
-      50% { box-shadow: 0 0 0 6px ${COLORS.primaryGlow}, 0 0 30px ${COLORS.primaryGlow}; }
-    }
-
     @keyframes orphy-panel-slide-in {
       from {
         opacity: 0;
@@ -121,12 +119,8 @@ function injectStyles(): void {
       100% { transform: scale(1); }
     }
 
-    .orphy-replay-overlay {
-      animation: orphy-fade-in 0.2s ease-out;
-    }
-
     .orphy-replay-highlight {
-      animation: orphy-highlight-pulse 2s ease-in-out infinite;
+      animation: orphy-fade-in 0.2s ease-out;
     }
 
     .orphy-replay-panel {
@@ -193,6 +187,24 @@ function getTypeColor(type: FeedbackType): string {
   return colors[type];
 }
 
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "treated": return COLORS.statusTreated;
+    case "validated": return COLORS.statusValidated;
+    case "resolved": return COLORS.statusResolved;
+    default: return COLORS.statusOpen;
+  }
+}
+
+function getStatusBgColor(status: string): string {
+  switch (status) {
+    case "treated": return COLORS.statusTreatedBg;
+    case "validated": return COLORS.statusValidatedBg;
+    case "resolved": return COLORS.statusResolvedBg;
+    default: return COLORS.statusOpenBg;
+  }
+}
+
 /**
  * Create an element with an SVG icon inside
  * Uses static hardcoded SVG strings (safe, not user input)
@@ -219,40 +231,27 @@ export function showReplayOverlay(
 
   currentElement = element;
 
-  // Create backdrop
-  overlayEl = createElement("div", {
-    className: "orphy-replay-overlay",
-    styles: {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: COLORS.backdrop,
-      zIndex: "999998",
-      cursor: "pointer",
-    },
-    onClick: onClose,
-  });
+  // Spotlight highlight — same triple box-shadow as highlight.ts spotlight mode
+  const spotlightShadow = `0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 4px ${COLORS.primary}, 0 0 0 9999px rgba(15, 15, 15, 0.6)`;
 
-  // Create highlight
   highlightEl = createElement("div", {
     className: "orphy-replay-highlight",
     styles: {
       position: "fixed",
-      pointerEvents: "none",
-      zIndex: "999999",
-      border: `3px solid ${COLORS.primary}`,
-      backgroundColor: COLORS.primaryLight,
+      zIndex: "999998",
+      border: `2px solid ${COLORS.primary}`,
       borderRadius: "6px",
+      backgroundColor: "transparent",
+      boxShadow: spotlightShadow,
+      cursor: "pointer",
     },
+    onClick: onClose,
   });
 
   // Create panel
   panelEl = createPanel(feedback, onClose, onResolve);
 
   // Append to DOM
-  document.body.appendChild(overlayEl);
   document.body.appendChild(highlightEl);
   document.body.appendChild(panelEl);
 
@@ -295,11 +294,9 @@ export function hideReplayOverlay(): void {
   window.removeEventListener("scroll", scheduleUpdate);
   window.removeEventListener("resize", scheduleUpdate);
 
-  overlayEl?.remove();
   highlightEl?.remove();
   panelEl?.remove();
 
-  overlayEl = null;
   highlightEl = null;
   panelEl = null;
   currentElement = null;
@@ -315,7 +312,10 @@ function createPanel(
   onClose: () => void,
   onResolve: (feedbackId: string, note?: string) => void
 ): HTMLDivElement {
-  const isResolved = feedback.status === "resolved";
+  const status = feedback.status ?? "open";
+  const statusColor = getStatusColor(status);
+  const statusBgColor = getStatusBgColor(status);
+  const isActionable = status === "open" || status === "treated";
   const typeColor = getTypeColor(feedback.feedbackType);
 
   // ─── Header ───
@@ -355,10 +355,10 @@ function createPanel(
       borderRadius: "99px",
       fontSize: TYPOGRAPHY.sizes.sm,
       fontWeight: "500",
-      backgroundColor: isResolved ? COLORS.statusResolvedBg : COLORS.statusOpenBg,
-      color: isResolved ? COLORS.statusResolved : COLORS.statusOpen,
+      backgroundColor: statusBgColor,
+      color: statusColor,
     },
-    children: [t(`replay.status.${feedback.status}`)],
+    children: [t(`replay.status.${status}`)],
   });
 
   const header = createElement("div", {
@@ -450,7 +450,7 @@ function createPanel(
   let noteTextarea: HTMLTextAreaElement | null = null;
   let noteSection: HTMLDivElement | null = null;
 
-  if (!isResolved) {
+  if (isActionable) {
     noteTextarea = createElement("textarea", {
       styles: {
         width: "100%",
@@ -549,7 +549,7 @@ function createPanel(
       gap: "10px",
       justifyContent: "flex-end",
     },
-    children: isResolved ? [closeBtn] : [closeBtn, resolveButton],
+    children: isActionable ? [closeBtn, resolveButton] : [closeBtn],
   });
 
   // ─── Hint ───

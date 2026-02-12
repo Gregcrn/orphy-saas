@@ -54,7 +54,9 @@ export const fr = {
   // Replay mode
   replay: {
     status: {
-      open: "Ouvert",
+      open: "En attente",
+      treated: "Traité",
+      validated: "Validé",
       resolved: "Résolu",
     },
     close: "Fermer",
@@ -159,6 +161,8 @@ export interface TranslationKeys {
   replay: {
     status: {
       open: string;
+      treated: string;
+      validated: string;
       resolved: string;
     };
     close: string;

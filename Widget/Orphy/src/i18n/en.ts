@@ -57,6 +57,8 @@ export const en: TranslationKeys = {
   replay: {
     status: {
       open: "Open",
+      treated: "Treated",
+      validated: "Validated",
       resolved: "Resolved",
     },
     close: "Close",
