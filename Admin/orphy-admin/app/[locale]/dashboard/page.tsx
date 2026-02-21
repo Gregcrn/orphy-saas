@@ -22,7 +22,7 @@ export default function DashboardPage() {
   const t = useTranslations();
   const pathname = usePathname();
   const locale = pathname.split("/")[1] || "fr";
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, isLoading: workspaceLoading } = useWorkspace();
 
   const allProjects = useQuery(api.projects.list);
   const allFeedbacks = useQuery(api.feedbacks.listAll, {});
@@ -44,7 +44,7 @@ export default function DashboardPage() {
     [allFeedbacks, workspaceProjectIds]
   );
 
-  const isLoading = allProjects === undefined || allFeedbacks === undefined || !currentWorkspace;
+  const isLoading = allProjects === undefined || allFeedbacks === undefined || workspaceLoading;
 
   const openFeedbacks = feedbacks?.filter((f) => f.status === "open") ?? [];
   const resolvedFeedbacks = feedbacks?.filter((f) => f.status === "resolved") ?? [];
