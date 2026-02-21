@@ -36,7 +36,7 @@ export default function ProjectSettingsPage({
   const pathname = usePathname();
   const router = useRouter();
   const locale = pathname.split("/")[1] || "fr";
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, isLoading: workspaceLoading } = useWorkspace();
 
   const project = useQuery(api.projects.get, {
     projectId: projectId as Id<"projects">,
@@ -67,7 +67,7 @@ export default function ProjectSettingsPage({
     setFormInitialized(true);
   }
 
-  const isLoading = project === undefined || !currentWorkspace;
+  const isLoading = project === undefined || workspaceLoading;
 
   // Convex HTTP Actions URL for the widget API
   const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL || "https://decisive-llama-265.convex.site";

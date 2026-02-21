@@ -87,7 +87,7 @@ export default function ProjectDetailPage({
   const t = useTranslations();
   const pathname = usePathname();
   const locale = pathname.split("/")[1] || "fr";
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, isLoading: workspaceLoading } = useWorkspace();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [filters, setFilters] = useState<FeedbackFiltersState>({
@@ -122,7 +122,7 @@ export default function ProjectDetailPage({
   const updatePriority = useMutation(api.feedbacks.updatePriority);
   const deleteFeedback = useMutation(api.feedbacks.remove);
 
-  const isLoading = project === undefined || feedbacks === undefined || !currentWorkspace;
+  const isLoading = project === undefined || feedbacks === undefined || workspaceLoading;
 
   // Check if project belongs to current workspace
   const hasAccess = project?.workspaceId === currentWorkspace?._id;

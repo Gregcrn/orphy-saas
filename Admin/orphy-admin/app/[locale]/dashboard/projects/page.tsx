@@ -30,7 +30,7 @@ export default function ProjectsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const locale = pathname.split("/")[1] || "fr";
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, isLoading: workspaceLoading } = useWorkspace();
 
   const allProjects = useQuery(api.projects.list);
   const feedbacks = useQuery(api.feedbacks.listAll, {});
@@ -57,7 +57,7 @@ export default function ProjectsPage() {
     }
   }, [searchParams, router, locale]);
 
-  const isLoading = allProjects === undefined || !currentWorkspace;
+  const isLoading = allProjects === undefined || workspaceLoading;
 
   // Get feedback stats per project
   const getFeedbackStats = (projectId: string) => {
