@@ -1041,7 +1041,9 @@
   <script>
     (async function initDemo() {
       var isProd = window.location.hostname === 'app.orphy.app';
-      var PROJECT_ID = 'jd71snbyqe95fwq81c2eqgrk4x8025kt';
+      var PROJECT_ID = isProd
+        ? 'j9712e2f6f98r8xp0fdjwsy17581ke77'
+        : 'jd71snbyqe95fwq81c2eqgrk4x8025kt';
       var CONVEX_SITE = isProd
         ? 'https://veracious-peacock-288.convex.site'
         : 'https://decisive-llama-265.convex.site';
