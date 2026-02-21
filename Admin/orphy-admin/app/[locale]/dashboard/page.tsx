@@ -77,6 +77,34 @@ export default function DashboardPage() {
     );
   }
 
+  // Empty state — no projects yet
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">{t("dashboard.title")}</h1>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#D4A373]/10 flex items-center justify-center mb-6">
+              <FolderKanban className="h-8 w-8 text-[#D4A373]" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">
+              {t("dashboard.empty.noProjects")}
+            </h2>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              {t("dashboard.empty.noProjectsDescription")}
+            </p>
+            <Link href={`/${locale}/dashboard/projects?new=true`}>
+              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#D4A373] hover:bg-[#c49366] text-white font-medium transition-colors">
+                <FolderKanban className="h-4 w-4" />
+                {t("projects.new")}
+              </button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("dashboard.title")}</h1>
