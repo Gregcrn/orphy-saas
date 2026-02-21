@@ -13,6 +13,7 @@ import {
   type MinimizedBarAPI,
   type MinimizedItem,
 } from "./minimized-bar";
+import { showSpotlight, hideHighlight } from "../core/highlight";
 import {
   colors,
   typography,
@@ -127,6 +128,9 @@ export function showReviewPanel(
 }
 
 export function hideReviewPanel(): void {
+  // Clear any active spotlight
+  hideHighlight();
+
   // Destroy minimized bar if active
   if (minimizedBarAPI) {
     minimizedBarAPI.destroy();
@@ -206,10 +210,7 @@ function minimizeReviewPanel(): void {
         const draft = drafts.find((d) => d.tempId === item.id);
         if (draft?.element?.isConnected) {
           draft.element.scrollIntoView({ block: "center", behavior: "smooth" });
-          draft.element.classList.add("orphy-flash-highlight");
-          setTimeout(() => {
-            draft.element.classList.remove("orphy-flash-highlight");
-          }, 1000);
+          showSpotlight(draft.element);
         }
       },
     });
@@ -593,16 +594,11 @@ function createDraftItem(draft: FeedbackDraft, number: number): HTMLDivElement {
       // Don't scroll if clicking delete
       if ((e.target as HTMLElement).closest("button")) return;
 
-      // Scroll element into view
+      // Scroll element into view and spotlight it
       const element = draft.element;
       if (element && element.isConnected) {
         element.scrollIntoView({ block: "center", behavior: "smooth" });
-
-        // Add temporary flash highlight
-        element.classList.add("orphy-flash-highlight");
-        setTimeout(() => {
-          element.classList.remove("orphy-flash-highlight");
-        }, 1000);
+        showSpotlight(element);
       }
     },
   });
