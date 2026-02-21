@@ -24,7 +24,6 @@
   },
   "navigation": {
     "dashboard": "Tableau de bord",
-    "inbox": "Boîte de réception",
     "projects": "Projets",
     "settings": "Paramètres",
     "overview": "Vue d'ensemble"
@@ -76,7 +75,6 @@
   },
   "feedbacks": {
     "title": "Feedbacks",
-    "inbox": "Boîte de réception",
     "status": {
       "open": "Ouvert",
       "treated": "Traité",
@@ -161,7 +159,6 @@
   },
   "sidebar": {
     "dashboard": "Tableau de bord",
-    "inbox": "Boîte de réception",
     "projects": "Projets",
     "settings": "Paramètres",
     "workspace": "Espace de travail"
