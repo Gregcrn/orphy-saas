@@ -1026,47 +1026,43 @@
 
   <!-- ORPHY WIDGET + DEMO SEED -->
   <script>
-    // Load widget from CDN in prod, local in dev
     (function() {
       var isProd = window.location.hostname === 'app.orphy.app';
       var src = isProd
         ? 'https://widget.orphy.app/v1/orphy.js'
         : '/demo/orphy.js';
-      var s = document.createElement('script');
-      s.src = src;
-      s.async = true;
-      document.head.appendChild(s);
-    })();
-  </script>
-  <script>
-    (async function initDemo() {
-      var isProd = window.location.hostname === 'app.orphy.app';
       var PROJECT_ID = isProd
         ? 'j9712e2f6f98r8xp0fdjwsy17581ke77'
         : 'jd71snbyqe95fwq81c2eqgrk4x8025kt';
       var CONVEX_SITE = isProd
         ? 'https://veracious-peacock-288.convex.site'
         : 'https://decisive-llama-265.convex.site';
-      var pageUrl = window.location.href.split('?')[0];
 
-      // Seed demo data (no-op if already seeded for this URL)
-      try {
-        await fetch(CONVEX_SITE + '/api/seed-demo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId: PROJECT_ID, pageUrl: pageUrl })
+      var s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = async function() {
+        var pageUrl = window.location.href.split('?')[0];
+
+        // Seed demo data (no-op if already seeded for this URL)
+        try {
+          await fetch(CONVEX_SITE + '/api/seed-demo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId: PROJECT_ID, pageUrl: pageUrl })
+          });
+        } catch (e) {
+          console.warn('Demo seed skipped:', e);
+        }
+
+        // Init Orphy widget
+        Orphy.init({
+          projectId: PROJECT_ID,
+          apiUrl: CONVEX_SITE + '/api/feedback/batch',
+          locale: 'fr'
         });
-      } catch (e) {
-        // Seed failed silently - demo still works, just without pre-loaded threads
-        console.warn('Demo seed skipped:', e);
-      }
-
-      // Init Orphy widget
-      Orphy.init({
-        projectId: PROJECT_ID,
-        apiUrl: CONVEX_SITE + '/api/feedback/batch',
-        locale: 'fr'
-      });
+      };
+      document.head.appendChild(s);
     })();
   </script>
 </body>
