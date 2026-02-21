@@ -160,12 +160,32 @@ export const create = mutation({
       workspaceId = defaultWorkspace?._id;
     }
 
-    // If a workspaceId is provided, verify user is a member
-    if (workspaceId) {
+    // Still no workspace — create one on the fly (race condition with scheduler)
+    if (!workspaceId) {
+      const now = Date.now();
+      const name = user.firstName
+        ? `${user.firstName}'s Workspace`
+        : "My Workspace";
+      workspaceId = await ctx.db.insert("workspaces", {
+        name,
+        ownerId: user._id,
+        plan: "free",
+        maxSeats: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.db.insert("workspaceMembers", {
+        workspaceId,
+        userId: user._id,
+        role: "owner",
+        joinedAt: now,
+      });
+    } else {
+      // Verify user is a member of the provided/found workspace
       const membership = await ctx.db
         .query("workspaceMembers")
         .withIndex("by_workspace_user", (q) =>
-          q.eq("workspaceId", workspaceId).eq("userId", user._id)
+          q.eq("workspaceId", workspaceId!).eq("userId", user._id)
         )
         .first();
 
