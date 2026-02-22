@@ -33,6 +33,8 @@ export interface OrphyConfig {
   apiUrl: string;
   /** Locale for UI text ('fr' | 'en'), defaults to 'fr' */
   locale?: Locale;
+  /** Demo mode: simulates submissions without calling the API */
+  demoMode?: boolean;
   /** Optional callback after feedback is submitted */
   onSubmit?: (feedback: Feedback) => void;
   /** Optional callback on API error */
@@ -320,10 +322,35 @@ async function handleSubmitAll(drafts: FeedbackDraft[]): Promise<void> {
     sessionStore.updateDraft(draft.tempId, { status: "sending" });
   });
 
-  // Capture device info once for all feedbacks in this batch
-  const deviceInfo = getDeviceInfo();
-
   try {
+    // Demo mode: simulate success without calling the API
+    if (config.demoMode) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      drafts.forEach((draft) => {
+        sessionStore.updateDraft(draft.tempId, { status: "sent" });
+      });
+
+      setSubmitLoading(false);
+
+      const count = drafts.length;
+      showToast({
+        type: "success",
+        message: count === 1
+          ? t("toast.successSingle")
+          : t("toast.successMultiple", { count }),
+      });
+
+      setTimeout(() => {
+        hideReviewPanel();
+        sessionStore.clearSession();
+      }, 1000);
+      return;
+    }
+
+    // Capture device info once for all feedbacks in this batch
+    const deviceInfo = getDeviceInfo();
+
     // Batch API call
     const response = await fetch(`${config.apiUrl}`, {
       method: "POST",
